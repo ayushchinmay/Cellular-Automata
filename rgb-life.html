@@ -154,6 +154,8 @@
   .tool u b{color:var(--ink);font-weight:500;letter-spacing:0}
   .tool .row{display:flex;gap:6px}
   .tool--end{margin-left:auto}
+  .tool--right{margin-left:auto}
+  .tool--right+.tool--end{margin-left:0}
   .swatches{display:flex;flex-wrap:wrap;gap:6px}
   .tools .sw{width:34px}
   .tools .sw{height:32px}
@@ -224,7 +226,6 @@
           <option value="signal" selected>Signal</option>
           <option value="pure">Pure RGB</option>
           <option value="bloom">Bloom</option>
-          <option value="image">From the image</option>
         </select>
         <p class="hint" id="paletteNote" style="margin-top:6px"></p>
       </div>
@@ -236,32 +237,17 @@
     <div class="group">
       <h2>Rules</h2>
       <div class="field">
-        <label for="preset">Preset</label>
+        <label for="preset">Interaction</label>
         <select id="preset">
           <option value="classic" selected>Classic Conway</option>
-          <option value="kin">Kin only</option>
-          <option value="tension">Tension</option>
-          <option value="crowd">Kin crowding</option>
-          <option value="mutual">Mutualism</option>
-          <option value="hybrid">Hybrid birth</option>
-          <option value="keystone">Keystone predator</option>
-          <option value="safety">Safety in numbers</option>
-          <option value="custom">Custom…</option>
+          <option value="kin">Kin only — parallel populations</option>
+          <option value="tension">Tension — fronts annihilate</option>
+          <option value="crowd">Kin crowding — mixing is lethal</option>
+          <option value="keystone">Keystone predator — one species hunts</option>
+          <option value="hybrid">Hybrid birth — new colours appear</option>
         </select>
       </div>
 
-      <div class="field">
-        <label for="death">Death — what kills a living cell</label>
-        <select id="death">
-          <option value="0" selected>Any neighbour counts</option>
-          <option value="1">Kin only — foreigners are invisible</option>
-          <option value="2">Kin for company, anyone for crowding</option>
-          <option value="3">Friends minus enemies</option>
-          <option value="4">Mutualism — a foreigner saves you from solitude</option>
-          <option value="5">Hunted — one species preys on the rest</option>
-          <option value="6">Hunted unless sheltered by two kin</option>
-        </select>
-      </div>
       <p class="hint" id="deathNote"></p>
       <div class="field" id="rowApex" hidden>
         <label for="apex">The predator</label>
@@ -279,29 +265,6 @@
         </select>
       </div>
 
-      <div class="field">
-        <label for="birth">Birth — when an empty cell fills</label>
-        <select id="birth">
-          <option value="0" selected>Exactly three neighbours, any species</option>
-          <option value="1">Exactly three of one species</option>
-          <option value="2">Three left after enemies cancel friends</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="colour">Newborn colour</label>
-        <select id="colour">
-          <option value="majority" selected>Majority of the parents</option>
-          <option value="blend">Blend — the hue between them</option>
-          <option value="parent">A random parent, weighted</option>
-          <option value="cycle">Take turns — round robin</option>
-          <option value="rare">The rarer species</option>
-          <option value="common">The commoner species</option>
-          <option value="mutate">Mutation — any species at all</option>
-          <option value="lowest">Lowest species</option>
-          <option value="empty">Nobody — contested cells stay empty</option>
-        </select>
-      </div>
-      <p class="hint" id="birthNote"></p>
 
       <div class="field">
         <label for="rulefam">Neighbour counts</label>
@@ -353,13 +316,6 @@
         </select>
       </div>
       <div class="field">
-        <label for="mapping">Species colours</label>
-        <select id="mapping">
-          <option value="image" selected>Sampled from the image</option>
-          <option value="hue">Fixed hue sectors</option>
-        </select>
-      </div>
-      <div class="field">
         <label for="bits">Colour depth <b><span id="bitsOut">1 bit</span> / channel</b></label>
         <select id="bits">
           <option value="1" selected>1 bit — 8 colours</option>
@@ -378,27 +334,17 @@
           <option value="light">Dark pixels live — white is empty</option>
         </select>
       </div>
-      <div class="field">
-        <label>Minimum colourfulness <b><span id="chrOut">0.12</span></b></label>
-        <input type="range" id="chroma" min="0" max="0.6" step="0.01" value="0.12">
-      </div>
-      <div class="field">
-        <label>Darkest that still lives <b><span id="loOut">0.06</span></b></label>
-        <input type="range" id="lo" min="0" max="1" step="0.01" value="0.06">
-      </div>
-      <div class="field">
-        <label>Brightest that still lives <b><span id="hiOut">0.94</span></b></label>
-        <input type="range" id="hi" min="0" max="1" step="0.01" value="0.94">
-      </div>
+      <input type="hidden" id="chroma" value="0.12">
+      <input type="hidden" id="lo" value="0.06">
+      <input type="hidden" id="hi" value="0.94">
       <div class="field">
         <label>Thin the seed <b><span id="thinOut">60</span>% kept</b></label>
         <input type="range" id="thin" min="10" max="100" step="5" value="60">
       </div>
-      <p class="hint">With the image palette, the species <em>are</em> the picture's own dominant
-      colours, found by clustering. Otherwise species are fixed hues.
-      <!-- Aliveness is judged separately, so a grey
-      photo doesn't become a solid board of red.--> A full-strength seed is ~70% alive, so generation 1
-      is a mass die-off; thinning to 40–60% keeps the picture legible.</p>
+      <p class="hint">Species are fixed hue sectors, so a pixel's colour decides its side. The alive
+      test is judged separately, which is why a grey photo doesn't become a solid board of red.
+      A full-strength seed is ~70% alive, so generation 1 is a mass die-off; thinning to 40–60% keeps
+      the picture legible.</p>
     </div>
 
   </aside>
@@ -463,7 +409,7 @@
           <button id="pan" aria-pressed="false" title="Pan instead of paint">Pan ✋</button>
         </div>
       </div>
-      <div class="tool">
+      <div class="tool tool--right">
         <u>Board — <b><span id="dimOut">—</span> · <span id="cellsOut">—</span></b></u>
         <div class="row">
           <select id="maxdim" title="Long edge of the board, in cells. Applies to empty boards too — anything already drawn is kept and re-centred.">
@@ -589,15 +535,8 @@ const SPN = {
   6:["Red","Yellow","Green","Cyan","Blue","Magenta"]
 };
 const SPS = { 3:["R","G","B"], 6:["R","Y","G","C","B","M"] };
-function P(){
-  if(S.mapping==="image" && S.imgPal && S.imgPal.length===S.K) return S.imgPal;
-  return (PALETTES[S.palette]||PALETTES.signal)[S.K];
-}
-function LBL(){
-  return S.mapping==="image" && S.imgPal
-    ? Array.from({length:S.K},(_,i)=>String(i+1))
-    : SPS[S.K];
-}
+function P(){ return (PALETTES[S.palette]||PALETTES.signal)[S.K]; }
+function LBL(){ return SPS[S.K]; }
 function hueOf(c){
   const mx=Math.max(c[0],c[1],c[2]), mn=Math.min(c[0],c[1],c[2]);
   if(mx===mn) return -1;
@@ -684,20 +623,6 @@ const LIB = [
   {n:"Acorn",            c:"Methuselah", m:"grows for ~5200 gens", r:[".O.....","...O...","OO..OOO"]},
   {n:"Gosper glider gun",c:"Gun",        m:"a glider every 30 gens",r:["........................O...........","......................O.O...........","............OO......OO............OO","...........O...O....OO............OO","OO........O.....O...OO..............","OO........O...O.OO....O.O...........","..........O.....O.......O...........","...........O...O....................","............OO......................"]}
 ];
-const DEATH_NOTE = [
-  "Plain Conway: any neighbour is a neighbour, whatever colour it wears.",
-  "Foreigners are invisible — you need two or three of your own kind, and crowding is kin too.",
-  "You need kin for company, but anyone at all can crowd you. Mixing is what kills you.",
-  "Enemies cancel friends before the count is taken, so contact fronts annihilate.",
-  "Lichen logic: a cell that would die alone survives if a different species is touching it.",
-  "One species hunts every other. Enough hunters beside you and you go, whatever your neighbours count.",
-  "The same hunt, but two of your own kind beside you is shelter — only the isolated are taken."
-];
-const BIRTH_NOTE = [
-  "The classic trigger: any three neighbours, of any species, fill an empty cell.",
-  "A cell only fills when three neighbours share one species — parallel populations, no crossbreeding.",
-  "Enemies cancel friends first, so births only happen well inside a territory."
-];
 const LE = (() => { const b=new ArrayBuffer(4); new Uint32Array(b)[0]=1; return new Uint8Array(b)[0]===1; })();
 const HIST_BYTES = 48*1024*1024;
 const EDIT_BYTES = 24*1024*1024;
@@ -710,7 +635,7 @@ const S = {
   death:0, birth:0, colour:"majority", apex:1, thresh:3, convert:0,
   bmask:new Int32Array(6).fill(1<<3), smask:new Int32Array(6).fill((1<<2)|(1<<3)),
   smin:new Int32Array(6), smax:new Int32Array(6), scope:"all", ruleSp:1,
-  palette:"signal", mapping:"image", imgPal:null,
+  palette:"signal", mapping:"hue", imgPal:null,
   trails:false, fade:0.30, grid:false, autostop:true,
   brush:1, species:1, mode:"paint",
   stamp:null, stampO:null, rot:0, flip:false,
@@ -1146,22 +1071,7 @@ function seed(){
     }
     if(ok){ alive[i]=1; live++; }
   }
-  if(S.mapping==="image"){
-    /* cluster the ORIGINAL colours of the living pixels, not the posterised ones,
-       so dithering noise doesn't drag the centroids toward the cube corners */
-    const cap=24000, stride=Math.max(1,Math.floor(live/cap));
-    const sample=new Float32Array(Math.min(cap+K,Math.ceil(live/stride)+K)*3);
-    let n=0, seen=0;
-    for(let i=0;i<N && n*3+2<sample.length;i++){
-      if(!alive[i]) continue;
-      if(seen++ % stride) continue;
-      const k=i*4;
-      sample[n*3]=src[k]; sample[n*3+1]=src[k+1]; sample[n*3+2]=src[k+2]; n++;
-    }
-    S.imgPal = extractPalette(sample,n,K);
-    if(!S.imgPal) fail("Not enough living pixels to pull a palette — loosen the alive test");
-  }
-  const usePal = S.mapping==="image" && S.imgPal;
+  const usePal = false;
   const cells=new Uint8Array(N);
   for(let i=0,j=0;i<N;i++,j+=3){
     if(!alive[i]) continue;
@@ -1544,7 +1454,7 @@ function buildSwatches(){
   for(let k=1;k<=S.K;k++){
     const b=document.createElement("button");
     b.className="sw"; b.dataset.sp=String(k);
-    b.title=(S.mapping==="image"&&S.imgPal)?("Species "+k):SPN[S.K][k-1];
+    b.title=SPN[S.K][k-1];
     b.setAttribute("aria-pressed",String(S.species===k));
     b.innerHTML=`<span style="background:rgb(${p[k-1][0]},${p[k-1][1]},${p[k-1][2]})"></span>`;
     el.appendChild(b);
@@ -1559,17 +1469,13 @@ function buildSwatches(){
 }
 function setSpecies(n){
   if(n>S.K){ flag("Only "+S.K+" species on this board"); return; }
+  const wasStamping = S.mode==="stamp";
+  if(wasStamping) cancelStamp();          /* picking a colour means you want to paint */
   S.species=n;
   $("swatches").querySelectorAll(".sw").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.sp===n)));
-  /* an armed built-in stamp is re-inked; captured clips keep their own colours */
-  if(S.stamp && S.stamp.tag && !/^saved|selection/.test(S.stamp.tag)){
-    const q=LIB.find(z=>z.n===S.stamp.tag);
-    if(q){ const st=rowsToStamp(q.r,S.species||1); st.tag=q.n; S.stamp=st; reorient(); }
-  }
   brushPreview(); drawOverlay();
-  flag(n===0 ? (S.mode==="stamp" ? "Eraser — stamps still place their own colour" : "Eraser")
-             : (S.mode==="stamp" ? "Stamping in " : "Painting ")
-               + ((S.mapping==="image"&&S.imgPal) ? ("species "+n) : SPN[S.K][n-1].toLowerCase()));
+  flag(n===0 ? "Eraser"
+             : (wasStamping ? "Back to painting " : "Painting ") + SPN[S.K][n-1].toLowerCase());
 }
 function buildApex(){
   const el=$("apex");
@@ -1577,7 +1483,7 @@ function buildApex(){
   for(let k=1;k<=S.K;k++){
     const o=document.createElement("option");
     o.value=String(k);
-    o.textContent=(S.mapping==="image"&&S.imgPal)?("Species "+k):SPN[S.K][k-1];
+    o.textContent=SPN[S.K][k-1];
     el.appendChild(o);
   }
   if(S.apex>S.K) S.apex=1;
@@ -1808,24 +1714,11 @@ $("maxdim").onchange=()=>{
 };
 $("kcount").onchange=e=>setK(+e.target.value);
 function syncPalette(){
-  $("palette").disabled = S.mapping==="image";
-  $("paletteNote").textContent = S.mapping==="image"
-    ? "Species colours come from the image; this list applies to fixed hue sectors."
-    : "";
+  $("paletteNote").textContent = "Species are fixed hue sectors; this only changes how they are drawn.";
 }
-$("mapping").onchange=e=>{
-  S.mapping=e.target.value;
-  syncPalette();
-  if(S.img){ pause(); snapshot(); seed(); }
-  else flag("Load an image to sample its colours");
-  buildSwatches(); buildStats(); stats(); renderLib();
-};
-["bits","mask","chroma","lo","hi","thin"].forEach(id=>{
+["bits","mask","thin"].forEach(id=>{
   $(id).addEventListener("input",()=>{
     $("bitsOut").textContent=$("bits").value+" bit";
-    $("chrOut").textContent=(+$("chroma").value).toFixed(2);
-    $("loOut").textContent=(+$("lo").value).toFixed(2);
-    $("hiOut").textContent=(+$("hi").value).toFixed(2);
     $("thinOut").textContent=$("thin").value;
     if(S.img){ pause(); snapshot(); seed(); }
   });
@@ -1835,10 +1728,16 @@ const PRESETS = {
   kin:     {death:1,birth:1,colour:"majority"},
   tension: {death:3,birth:2,colour:"majority"},
   crowd:   {death:2,birth:0,colour:"majority"},
-  mutual:  {death:4,birth:0,colour:"majority"},
-  hybrid:  {death:0,birth:0,colour:"blend"   },
   keystone:{death:5,birth:0,colour:"majority"},
-  safety:  {death:6,birth:0,colour:"majority"}
+  hybrid:  {death:0,birth:0,colour:"blend"   }
+};
+const PRESET_NOTE = {
+  classic: "Any neighbour is a neighbour, whatever colour it wears. Newborns take the majority colour.",
+  kin:     "Foreigners are invisible and can't help you either — three of your own kind to be born, two or three to live. Parallel populations sharing one grid.",
+  tension: "Enemies cancel friends before the count is taken, so contact fronts annihilate and a permanent no-man's-land opens along every border.",
+  crowd:   "You need kin for company, but anyone at all can crowd you. Mixing is what kills you, so the species separate.",
+  keystone:"One species hunts every other. Enough hunters beside you and you go, whatever your own neighbours count.",
+  hybrid:  "Classic counts, but a newborn takes the hue *between* its parents — collisions produce colours that were never in the seed."
 };
 
 /* ------------------------------------------- birth / survival neighbour counts */
@@ -1916,36 +1815,22 @@ function syncCounts(){
     : "Conway is born on 3 and survives on 2 or 3. Death and Birth above decide which neighbours get counted; these decide how many it takes.";
 }
 function syncRules(){
-  $("deathNote").textContent=DEATH_NOTE[S.death];
-  $("birthNote").textContent=BIRTH_NOTE[S.birth];
+  $("deathNote").textContent=PRESET_NOTE[$("preset").value]||"";
   const hunts=S.death===5||S.death===6;
   $("rowApex").hidden=!hunts;
   $("rowThresh").hidden=!hunts;
   $("rowConv").hidden=!hunts;
-  /* name the combination if it matches a preset, otherwise say Custom */
-  let name="custom";
-  for(const k in PRESETS){
-    const p=PRESETS[k];
-    if(p.death===S.death&&p.birth===S.birth&&p.colour===S.colour){ name=k; break; }
-  }
-  $("preset").value=name;
 }
 $("preset").onchange=e=>{
   const p=PRESETS[e.target.value];
   if(!p) return;
   S.death=p.death; S.birth=p.birth; S.colour=p.colour;
-  $("death").value=String(S.death);
-  $("birth").value=String(S.birth);
-  $("colour").value=S.colour;
   syncRules();
-  flag($("preset").selectedOptions[0].textContent+" — "+DEATH_NOTE[S.death]);
+  flag($("preset").selectedOptions[0].textContent.split(" — ")[0]+" — "+PRESET_NOTE[e.target.value]);
 };
 $("apex").onchange   =e=>S.apex=+e.target.value;
 $("thresh").oninput =e=>{ S.thresh=+e.target.value; $("threshOut").textContent=S.thresh; };
 $("convert").onchange=e=>S.convert=+e.target.value;
-$("death").onchange =e=>{ S.death=+e.target.value; syncRules(); };
-$("birth").onchange =e=>{ S.birth=+e.target.value; syncRules(); };
-$("colour").onchange=e=>{ S.colour=e.target.value; syncRules(); };
 $("rulefam").onchange=e=>{ const v=e.target.value; if(v==="custom"){ syncCounts(); return; }
   setFamily(v); flag(FAMS[v]+" — "+v); };
 $("scope").onchange =e=>{ S.scope=e.target.value;
@@ -1959,15 +1844,12 @@ $("grid").onchange=e=>{ S.grid=e.target.checked; drawOverlay();
   if(S.grid && view.scale*S.dpr<4) flag("Grid appears once you zoom in past ~2×"); };
 $("autostop").onchange=e=>S.autostop=e.target.checked;
 $("palette").onchange=e=>{
-  if(e.target.value==="image" && !S.imgPal){
-    fail("No sampled palette yet — set Species colours to “sampled from the image” and load one");
-    e.target.value=S.palette; return;
-  }
   S.palette=e.target.value;
-  if(S.mapping==="image") flag("Species colours are sampled from the image — switch to fixed hue sectors to use this palette");
+  flag($("palette").selectedOptions[0].textContent+" palette");
   buildSwatches(); buildStats(); stats(); draw(true); drawPop(); brushPreview(); renderLib();
 };
-$("brush").oninput=e=>{ S.brush=+e.target.value; brushPreview(); drawOverlay(); };
+$("brush").oninput=e=>{ if(S.mode==="stamp") cancelStamp();
+  S.brush=+e.target.value; brushPreview(); drawOverlay(); };
 $("info").title="How this works (i)";
 $("fitBtn").onclick=()=>{ fit(); draw(true); drawOverlay(); };
 $("oneBtn").onclick=()=>zoomTo(1,view.cw/2,view.ch/2);
