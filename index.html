@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple HTML Games — cellular automata you can play with</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0e1013; --panel:#15181d; --surface:#1c2027;
+    --line:#282e37; --ink:#dfe4ec; --ink-dim:#8d97a8; --ink-faint:#5b6474;
+    --r:#ff3b52; --y:#ffc73d; --g:#2fe08a; --c:#22d3ee; --b:#4b86ff; --m:#c46bff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--void);color:var(--ink);
+    font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:13px;
+    -webkit-font-smoothing:antialiased;line-height:1.6}
+  .wrap{max-width:840px;margin:0 auto;padding:64px 24px 80px}
+  header{border-bottom:1px solid var(--line);padding-bottom:34px;margin-bottom:38px}
+  h1{font-family:"Space Grotesk",system-ui,sans-serif;font-weight:700;font-size:34px;
+    letter-spacing:-.03em;margin:0 0 14px;line-height:1.05}
+  .lede{color:var(--ink-dim);font-size:14px;max-width:56ch;margin:0}
+  .lede b{color:var(--ink);font-weight:500}
+
+  /* a live elementary automaton as the masthead — rule 30, computed on load */
+  #strip{width:100%;height:120px;display:block;margin:26px 0 0;border:1px solid var(--line);
+    border-radius:3px;background:#0b0d10;image-rendering:pixelated}
+  .cap{color:var(--ink-faint);font-size:10.5px;letter-spacing:.06em;margin:8px 0 0}
+
+  h2{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 16px}
+  .card{display:block;text-decoration:none;color:inherit;background:var(--panel);
+    border:1px solid var(--line);border-radius:4px;padding:20px 22px;margin-bottom:12px;
+    transition:border-color .15s ease,background .15s ease}
+  .card:hover{border-color:#3d4653;background:var(--surface)}
+  .card h3{font-family:"Space Grotesk",sans-serif;font-size:17px;margin:0 0 6px;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--ink-dim);font-size:12.5px;max-width:62ch}
+  .dots{display:flex;gap:5px;margin-bottom:12px}
+  .dots i{width:9px;height:9px;border-radius:2px;display:block}
+  .soon{margin-top:34px}
+  .soon ul{list-style:none;padding:0;margin:0;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+  .soon li{border:1px dashed #2b323c;border-radius:3px;padding:11px 13px;color:var(--ink-faint);font-size:12px}
+  .soon li b{color:var(--ink-dim);font-weight:500;display:block}
+  footer{margin-top:52px;padding-top:22px;border-top:1px solid var(--line);
+    color:var(--ink-faint);font-size:11.5px}
+  footer a{color:var(--ink-dim)}
+  @media (max-width:600px){ .wrap{padding:40px 18px 60px} h1{font-size:26px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Simple HTML&nbsp;Games</h1>
+    <p class="lede">Cellular automata you can actually play with. Every entry is a
+      <b>single self-contained HTML file</b> — no build step, no install, no server. Download it,
+      double-click it, and it runs.</p>
+    <canvas id="strip"></canvas>
+    <p class="cap">↑ Rule 30, computed in your browser just now — the simplest automaton in the collection's remit.</p>
+  </header>
+
+  <h2>In the collection</h2>
+  <a class="card" href="rgb-life.html">
+    <div class="dots">
+      <i style="background:var(--r)"></i><i style="background:var(--y)"></i>
+      <i style="background:var(--g)"></i><i style="background:var(--c)"></i>
+      <i style="background:var(--b)"></i><i style="background:var(--m)"></i>
+    </div>
+    <h3>RGB Life</h3>
+    <p>Conway's Game of Life played on the pixels of your photos. Three or six species compete on one
+    board under nine cross-species interaction models — predation, mutualism, mimicry, hybrid
+    births. Load an image, paint cells, stamp verified patterns, and watch a picture collapse into
+    gliders.</p>
+  </a>
+
+  <div class="soon">
+    <h2>Planned</h2>
+    <ul>
+      <li><b>Langton's ant</b>two rules, then a highway</li>
+      <li><b>Brian's Brain</b>three states, endless gliders</li>
+      <li><b>Wireworld</b>build working logic gates</li>
+      <li><b>Cyclic automaton</b>spontaneous spirals</li>
+      <li><b>Abelian sandpile</b>fractal avalanches</li>
+      <li><b>Falling sand</b>sand, water, fire, oil</li>
+    </ul>
+  </div>
+
+  <footer>
+    MIT licensed. Everything runs locally in your browser — images you load are never uploaded.
+    <br><a href="https://github.com/ayushchinmay/Simple-HTML-Games">github.com/ayushchinmay/Simple-HTML-Games</a>
+  </footer>
+</div>
+
+<script>
+/* Rule 30 from a single live cell — the whole point of the collection in 20 lines */
+(() => {
+  const cv = document.getElementById("strip");
+  const ctx = cv.getContext("2d");
+  function run(){
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = Math.max(120, Math.floor(cv.clientWidth));
+    const H = 120;
+    const cell = 2;
+    const cols = Math.floor(W / cell), rows = Math.floor(H / cell);
+    cv.width = cols; cv.height = rows;
+    let row = new Uint8Array(cols);
+    row[cols >> 1] = 1;
+    const img = ctx.createImageData(cols, rows);
+    const d = img.data;
+    for(let y = 0; y < rows; y++){
+      for(let x = 0; x < cols; x++){
+        const k = (y * cols + x) * 4;
+        const on = row[x];
+        d[k] = on ? 223 : 11; d[k+1] = on ? 228 : 13; d[k+2] = on ? 236 : 16; d[k+3] = 255;
+      }
+      const next = new Uint8Array(cols);
+      for(let x = 0; x < cols; x++){
+        const l = row[(x - 1 + cols) % cols], c = row[x], r = row[(x + 1) % cols];
+        next[x] = l ^ (c | r);          /* rule 30 */
+      }
+      row = next;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  run();
+  let t;
+  window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(run, 150); });
+})();
+</script>
+</body>
+</html>
