@@ -28,24 +28,36 @@ wheel-based rules meaningful.
 Colour depth (1/2/4/8-bit) posterises the picture *before* that judgement. It changes how the seed
 looks; it does not change how many species exist.
 
-## Cross-species interaction models
+## Rules, in four independent parts
 
-Within a species the rules never change. What varies is what *foreign* neighbours do to you.
+The thresholds never move — under two neighbours is solitude, over three is crowding, two or three
+survives, three fills a cell. What you choose is which neighbours those counts are taken over:
 
-| Model | Cross-species rule | Produces |
-|---|---|---|
-| **Blind** | a neighbour is a neighbour; birth takes the majority parent | plain Conway — colour is cosmetic |
-| **Kin only** | foreigners are invisible; only kin count | parallel populations sharing one grid |
-| **Tension** | effective count = friends − enemies | fronts annihilate; permanent no-man's-land |
-| **Kin crowding** | solitude judged by kin, crowding by everyone | mixing itself is lethal |
-| **Mutualism** | a cell that would die alone survives if a foreigner touches it | interlocking two-tone tissue |
-| **Hybrid birth** | mixed parents produce the hue between them | new colours appear only at borders |
-| **Keystone predator** | one chosen species hunts all the others | one colour polices the board |
-| **Safety in numbers** | the same hunt, but only isolated prey is taken | predation carves edges, not cores |
-| **Mimicry** | the outnumbered convert to the majority instead of dying | fronts advance by conversion |
+**Death — what kills a living cell**
 
-Contested births — where the parents disagree — resolve by random, round robin, rarer-wins,
-commoner-wins, hue blend, mutation, lowest-species, or nobody.
+| | |
+|---|---|
+| Any neighbour counts | plain Conway; colour is cosmetic |
+| Kin only | foreigners are invisible — parallel populations on one grid |
+| Kin for company, anyone for crowding | mixing itself is lethal |
+| Friends minus enemies | fronts annihilate; a permanent no-man's-land opens |
+| Mutualism | a cell that would die alone survives if a foreigner touches it |
+| Hunted | one species preys on all the rest |
+| Hunted unless sheltered | the same hunt, but two kin beside you is shelter |
+
+**Birth — when an empty cell fills:** any three neighbours · three of one species · three left after
+enemies cancel friends.
+
+**Newborn colour:** majority parent · blend of their hues · a random parent weighted by count · round
+robin · the rarer species · the commoner species · mutation · lowest · nobody.
+
+**Allegiance — whether a living cell can change species:** never · conquest (adopt whoever dominates)
+· mimicry (defect to the biggest rival whenever outnumbered, including standoffs where nothing
+dominates outright).
+
+A **Preset** menu fills all four at once for the named combinations — Classic Conway, Kin only,
+Tension, Kin crowding, Mutualism, Hybrid birth, Keystone predator, Safety in numbers, Mimicry — and
+flips to Custom the moment you change one.
 
 ## Pattern library
 
@@ -92,8 +104,9 @@ Step-back history is budgeted by memory, not frame count — 400 generations on 
 
 ## Things worth trying
 
-- Six species sampled from a sunset photo, **Mimicry**, motion trails on.
+- Six species sampled from a sunset photo, the **Mimicry** preset, motion trails on.
 - **Keystone predator** with prey converting: watch one colour eat the picture.
+- Death set to *mutualism* with newborn colour set to *blend* — a combination none of the presets covers.
 - A blank board, **Hybrid birth**, and a few stamped gliders aimed at each other — the collisions
   produce colours that were never in the seed.
 - Zoom to 8× on one corner and run at 120 gen/s.

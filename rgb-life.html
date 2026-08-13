@@ -297,20 +297,34 @@
     <div class="group">
       <h2>Rules</h2>
       <div class="field">
-        <label for="model">Cross-species interaction</label>
-        <select id="model">
-          <option value="8" selected>Blind — a neighbour is a neighbour</option>
-          <option value="0">Kin only — your own species keeps you alive</option>
-          <option value="1">Tension — enemies cancel friends</option>
-          <option value="2">Kin crowding — kin for company, anyone for crowding</option>
-          <option value="3">Mutualism — a partner rescues you from solitude</option>
-          <option value="4">Hybrid birth — mixed parents make an in-between colour</option>
-          <option value="5">Keystone predator — one species hunts all the rest</option>
-          <option value="6">Safety in numbers — predation only takes the isolated</option>
-          <option value="7">Mimicry — the outnumbered defect instead of dying</option>
+        <label for="preset">Preset</label>
+        <select id="preset">
+          <option value="classic" selected>Classic Conway</option>
+          <option value="kin">Kin only</option>
+          <option value="tension">Tension</option>
+          <option value="crowd">Kin crowding</option>
+          <option value="mutual">Mutualism</option>
+          <option value="hybrid">Hybrid birth</option>
+          <option value="keystone">Keystone predator</option>
+          <option value="safety">Safety in numbers</option>
+          <option value="mimicry">Mimicry</option>
+          <option value="custom">Custom…</option>
         </select>
       </div>
-      <p class="hint" id="modelNote"></p>
+
+      <div class="field">
+        <label for="death">Death — what kills a living cell</label>
+        <select id="death">
+          <option value="0" selected>Any neighbour counts</option>
+          <option value="1">Kin only — foreigners are invisible</option>
+          <option value="2">Kin for company, anyone for crowding</option>
+          <option value="3">Friends minus enemies</option>
+          <option value="4">Mutualism — a foreigner saves you from solitude</option>
+          <option value="5">Hunted — one species preys on the rest</option>
+          <option value="6">Hunted unless sheltered by two kin</option>
+        </select>
+      </div>
+      <p class="hint" id="deathNote"></p>
       <div class="field" id="rowApex" hidden>
         <label for="apex">The predator</label>
         <select id="apex"></select>
@@ -326,26 +340,44 @@
           <option value="1">Prey converts — infection spreads</option>
         </select>
       </div>
-      <label class="chk" style="margin-top:10px"><input type="checkbox" id="wrap" checked> Wrap edges (torus)</label>
-      <label class="chk"><input type="checkbox" id="conquest"> Conquest — survivors switch to the species around them</label>
+
       <div class="field">
-        <label for="tie">Contested birth</label>
-        <select id="tie">
-          <option value="random" selected>Random — one of the tied parents</option>
-          <option value="cycle">Take turns — round robin between them</option>
-          <option value="rare">The rarer species wins</option>
-          <option value="common">The commoner species wins</option>
-          <option value="blend">Blend — the colour between them</option>
-          <option value="mutate">Mutation — any species at all</option>
-          <option value="priority">Lowest species wins</option>
-          <option value="none">Nobody — the cell stays empty</option>
+        <label for="birth">Birth — when an empty cell fills</label>
+        <select id="birth">
+          <option value="0" selected>Exactly three neighbours, any species</option>
+          <option value="1">Exactly three of one species</option>
+          <option value="2">Three left after enemies cancel friends</option>
         </select>
       </div>
-      <p class="hint">Contested births are the ones where the parents disagree — three cells of three
-      different species, or two species tied. Rarer-wins keeps minorities alive; commoner-wins lets a
-      leader run away with the board; mutation quietly injects new colour.</p>
-      <p class="hint">Underneath every model: fewer than two neighbours dies, more than three dies,
-      two or three survives, exactly three fills an empty cell.</p>
+      <div class="field">
+        <label for="colour">Newborn colour</label>
+        <select id="colour">
+          <option value="majority" selected>Majority of the parents</option>
+          <option value="blend">Blend — the hue between them</option>
+          <option value="parent">A random parent, weighted</option>
+          <option value="cycle">Take turns — round robin</option>
+          <option value="rare">The rarer species</option>
+          <option value="common">The commoner species</option>
+          <option value="mutate">Mutation — any species at all</option>
+          <option value="lowest">Lowest species</option>
+          <option value="empty">Nobody — contested cells stay empty</option>
+        </select>
+      </div>
+      <p class="hint" id="birthNote"></p>
+
+      <div class="field">
+        <label for="alleg">Allegiance — can a living cell change species</label>
+        <select id="alleg">
+          <option value="0" selected>Never — colour is inherited for life</option>
+          <option value="1">Conquest — adopt whoever dominates the neighbourhood</option>
+          <option value="2">Mimicry — when outnumbered, join the biggest rival</option>
+        </select>
+      </div>
+
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="wrap" checked> Wrap edges (torus)</label>
+      <p class="hint">The thresholds never move: under two neighbours is solitude, over three is
+      crowding, two or three survives, three fills a cell. Death decides <i>which</i> neighbours are
+      counted; birth decides when a cell fills and in what colour.</p>
     </div>
 
     <div class="group">
@@ -474,12 +506,22 @@
     the living pixels.</p>
 
     <h3>Cross-species rules</h3>
-    <p>Within a species the rules never change. What varies is what <i>foreign</i> neighbours do to
-    you — whether they count at all (<b>kin only</b>), cancel your friends (<b>tension</b>), crowd you
-    without keeping you company (<b>kin crowding</b>), rescue you from dying alone
-    (<b>mutualism</b>), blend into a new colour at birth (<b>hybrid birth</b>), hunt you
-    (<b>keystone predator</b>, and its gentler form <b>safety in numbers</b>), or convince you to
-    change sides (<b>mimicry</b>).</p>
+    <p>The thresholds never move — under two is solitude, over three is crowding, two or three
+    survives, three fills a cell. What you choose is which neighbours those counts are taken over,
+    split into four independent questions:</p>
+    <ul>
+      <li><b>Death</b> — whose presence counts against a living cell: everyone, only kin, friends
+      minus enemies, or a predator species that hunts the rest.</li>
+      <li><b>Birth</b> — what it takes to fill an empty cell: any three neighbours, three of one
+      species, or three left after enemies cancel friends.</li>
+      <li><b>Newborn colour</b> — which species appears: the majority parent, a blend of their hues,
+      the rarer or commoner one, a mutation, or nothing at all.</li>
+      <li><b>Allegiance</b> — whether a living cell can change species: never, on local dominance
+      (conquest), or defect to the biggest rival whenever outnumbered (mimicry, which fires in
+      standoffs where no one species dominates outright).</li>
+    </ul>
+    <p>The <b>Preset</b> menu fills all four in at once for the named combinations, and flips to
+    Custom the moment you change one.</p>
     <h3>Keys</h3>
     <p><b>Space</b> play / pause · <b>←</b> <b>→</b> or <b>,</b> <b>.</b> step a generation ·
     <b>R</b> random soup · <b>C</b> clear</p>
@@ -492,7 +534,7 @@
     whatever is armed. With a stamp held, <b>R</b> rotates and <b>F</b> flips it instead of their
     usual jobs.</p>
     <h3>For motion work</h3>
-    <p>Turn on motion trails, pick the Cycle model with one predator and conversion on, and let it
+    <p>Turn on motion trails, pick the Keystone predator preset with conversion on, and let it
     run at high speed — then record. Zoom in first: the recorder captures
     the board view, so a tight crop at 8× gives a very different film from a whole-image wide shot.</p>
     <button id="modalX">Close</button>
@@ -618,16 +660,19 @@ const LIB = [
   {n:"Acorn",            c:"Methuselah", m:"grows for ~5200 gens", r:[".O.....","...O...","OO..OOO"]},
   {n:"Gosper glider gun",c:"Gun",        m:"a glider every 30 gens",r:["........................O...........","......................O.O...........","............OO......OO............OO","...........O...O....OO............OO","OO........O.....O...OO..............","OO........O...O.OO....O.O...........","..........O.....O.......O...........","...........O...O....................","............OO......................"]}
 ];
-const NOTES = [
-  "Foreigners are invisible: you need two or three of your own kind. Parallel populations, one grid.",
-  "Friends minus enemies feeds the 2–3 window, so contact fronts annihilate and a no-man's-land opens.",
-  "You need kin for company but choke on crowding from anyone — mixing is what kills you.",
+const DEATH_NOTE = [
+  "Plain Conway: any neighbour is a neighbour, whatever colour it wears.",
+  "Foreigners are invisible — you need two or three of your own kind, and crowding is kin too.",
+  "You need kin for company, but anyone at all can crowd you. Mixing is what kills you.",
+  "Enemies cancel friends before the count is taken, so contact fronts annihilate.",
   "Lichen logic: a cell that would die alone survives if a different species is touching it.",
-  "A birth from mixed parents lands between them on the colour wheel — new hues appear only at borders.",
-  "One species hunts every other. Prey with enough hunters beside it dies, or converts if you say so.",
-  "The same hunt, but only isolated prey is taken — anything with two of its own kind beside it holds.",
-  "Being outnumbered means defecting, not dying: the cell survives wearing the majority's colour.",
-  "Colour is cosmetic: a neighbour is a neighbour, and a birth takes the majority colour of its three parents. Plain Conway — the baseline to compare the rest against."
+  "One species hunts every other. Enough hunters beside you and you go, whatever your neighbours count.",
+  "The same hunt, but two of your own kind beside you is shelter — only the isolated are taken."
+];
+const BIRTH_NOTE = [
+  "The classic trigger: any three neighbours, of any species, fill an empty cell.",
+  "A cell only fills when three neighbours share one species — parallel populations, no crossbreeding.",
+  "Enemies cancel friends first, so births only happen well inside a territory."
 ];
 const LE = (() => { const b=new ArrayBuffer(4); new Uint32Array(b)[0]=1; return new Uint8Array(b)[0]===1; })();
 const HIST_BYTES = 48*1024*1024;
@@ -637,8 +682,8 @@ const MAX_CELLS  = 6*1024*1024;
 const S = {
   W:128, H:96, K:3, cells:null, scratch:null, pool:null,
   gen:0, running:false, fps:12,
-  wrap:true, conquest:false, tie:"random",
-  model:8, apex:1, thresh:3, convert:0,
+  wrap:true,
+  death:0, birth:0, colour:"majority", alleg:0, apex:1, thresh:3, convert:0,
   palette:"signal", mapping:"image", imgPal:null,
   trails:false, fade:0.30, grid:false, autostop:true,
   brush:1, species:1, mode:"paint",
@@ -734,15 +779,17 @@ function doRedo(){
 }
 
 /* --------------------------------------------------------------- stepping */
-const pick = new Int32Array(8);
+const pick = new Int32Array(8), tiedList = new Int32Array(8);
 let rr = 0;
-/* Every contested birth in every model funnels through here. */
-function breakTie(list,j,tie,K){
-  switch(tie){
-    case "none":     return 0;
-    case "priority": return list[0];
-    case "cycle":    return list[(rr++)%j];
-    case "mutate":   return 1+((Math.random()*K)|0);
+/* Which species a newborn takes. Applies to EVERY birth, not only contested ones —
+   `list` is the set of species eligible under the chosen birth rule. */
+function newborn(cnt,K,list,j,rule){
+  if(rule==="mutate") return 1+((Math.random()*K)|0);
+  if(j===1) return list[0];
+  switch(rule){
+    case "empty":  return 0;
+    case "lowest": return list[0];
+    case "cycle":  return list[(rr++)%j];
     case "rare": {
       let best=list[0], bv=Infinity;
       for(let i=0;i<j;i++){ const v=S.prevTot[list[i]-1]; if(v<bv){ bv=v; best=list[i]; } }
@@ -753,46 +800,39 @@ function breakTie(list,j,tie,K){
       for(let i=0;i<j;i++){ const v=S.prevTot[list[i]-1]; if(v>bv){ bv=v; best=list[i]; } }
       return best;
     }
+    case "parent": {
+      let tot=0;
+      for(let i=0;i<j;i++) tot+=cnt[list[i]-1];
+      let r=Math.random()*tot;
+      for(let i=0;i<j;i++){ r-=cnt[list[i]-1]; if(r<=0) return list[i]; }
+      return list[j-1];
+    }
     case "blend": {
       let sx=0, sy=0;
-      for(let i=0;i<j;i++){ const k=list[i]-1; sx+=S.wcos[k]; sy+=S.wsin[k]; }
+      for(let i=0;i<j;i++){ const k=list[i]-1; sx+=S.wcos[k]*cnt[k]; sy+=S.wsin[k]*cnt[k]; }
       if(Math.abs(sx)<1e-9 && Math.abs(sy)<1e-9) return list[(Math.random()*j)|0];
       let a=Math.atan2(sy,sx);
       if(a<0) a+=Math.PI*2;
       return (Math.round(a/(Math.PI*2)*K)%K)+1;
     }
-    default:         return list[(Math.random()*j)|0];
+    default: {                                   /* majority, ties broken at random */
+      let m=0;
+      for(let i=0;i<j;i++) if(cnt[list[i]-1]>m) m=cnt[list[i]-1];
+      let t=0;
+      for(let i=0;i<j;i++) if(cnt[list[i]-1]===m) tiedList[t++]=list[i];
+      return t===1 ? tiedList[0] : tiedList[(Math.random()*t)|0];
+    }
   }
 }
-function pickMax(cnt,K,tie){
+/* the largest foreign species, ties broken at random — this is what an outnumbered
+   mimic defects to, and it fires in cases where no single species dominates outright */
+function biggestRival(cnt,K,cur){
   let m=0;
-  for(let k=0;k<K;k++) if(cnt[k]>m) m=cnt[k];
-  if(!m) return 0;
+  for(let k=0;k<K;k++) if(k!==cur-1 && cnt[k]>m) m=cnt[k];
+  if(!m) return cur;
   let j=0;
-  for(let k=0;k<K;k++) if(cnt[k]===m) pick[j++]=k+1;
-  if(j===1) return pick[0];
-  return breakTie(pick,j,tie,K);
-}
-function pickEq(cnt,K,v,tie){
-  let j=0;
-  for(let k=0;k<K;k++) if(cnt[k]===v) pick[j++]=k+1;
-  if(!j) return 0;
-  if(j===1) return pick[0];
-  return breakTie(pick,j,tie,K);
-}
-const TAU=Math.PI*2;
-/* circular mean of the parents' positions on the colour wheel */
-function blend(cnt,K,tie){
-  let sx=0, sy=0, kinds=0;
-  const CS=S.wcos, SN=S.wsin;
-  for(let k=0;k<K;k++) if(cnt[k]){
-    sx+=CS[k]*cnt[k]; sy+=SN[k]*cnt[k]; kinds++;
-  }
-  if(kinds<=1) return pickMax(cnt,K,tie);
-  if(Math.abs(sx)<1e-9 && Math.abs(sy)<1e-9) return pickMax(cnt,K,tie);  /* opposites cancel */
-  let a=Math.atan2(sy,sx);
-  if(a<0) a+=TAU;
-  return (Math.round(a/TAU*K)%K)+1;
+  for(let k=0;k<K;k++) if(k!==cur-1 && cnt[k]===m) tiedList[j++]=k+1;
+  return j===1 ? tiedList[0] : tiedList[(Math.random()*j)|0];
 }
 function dominant(cnt,K,cur){
   let m=0,j=0;
@@ -805,7 +845,7 @@ function dominant(cnt,K,cur){
 }
 function step(){
   const t0=performance.now();
-  const {W,H,cells,xm,xp,ym,yp,col,cnt,totals,K,conquest,tie,model,apex,thresh,convert}=S;
+  const {W,H,cells,xm,xp,ym,yp,col,cnt,totals,K,death,birth,colour,alleg,apex,thresh,convert}=S;
   let out=S.scratch;
   if(!out || out.length!==cells.length) out=new Uint8Array(cells.length);
   totals.fill(0);
@@ -837,36 +877,43 @@ function step(){
       let nv=0;
       if(cur){
         const f=cnt[cur-1], e=n-f;
-        switch(model){
-          case 0: if(f===2||f===3) nv=cur; break;                        /* kin only    */
-          case 1: { const net=f-e; if(net===2||net===3) nv=cur; break; }  /* tension     */
-          case 2: if(f>=2 && n<=3) nv=cur; break;                        /* kin crowding*/
-          case 3: if(n===2||n===3||(n===1&&e>=1)) nv=cur; break;          /* mutualism   */
-          case 5:                                                        /* keystone    */
-            if(cur!==apex && cnt[apex-1]>=thresh) nv = convert?apex:0;
-            else if(n===2||n===3) nv=cur;
-            break;
-          case 6:                                                        /* safety      */
-            if(cur!==apex && cnt[apex-1]>=thresh && f<2) nv = convert?apex:0;
-            else if(n===2||n===3) nv=cur;
-            break;
-          case 7:                                                        /* mimicry     */
-            if(n===2||n===3) nv = (e>f) ? dominant(cnt,K,cur) : cur;
-            break;
-          default: if(n===2||n===3) nv=cur;                              /* hybrid + blind */
-        }
-        if(nv===cur && conquest) nv=dominant(cnt,K,cur);
-      } else {
-        switch(model){
-          case 0: nv=pickEq(cnt,K,3,tie); break;
-          case 1: {
-            let m=0; for(let k=0;k<K;k++) if(cnt[k]>m)m=cnt[k];
-            if(m-(n-m)===3) nv=pickMax(cnt,K,tie);
+        let live=false, taken=false;
+        switch(death){
+          case 1: live = f===2||f===3; break;
+          case 2: live = f>=2 && n<=3; break;
+          case 3: { const net=f-e; live = net===2||net===3; break; }
+          case 4: live = (n===2||n===3) || (n===1 && e>=1); break;
+          case 5:
+          case 6: {
+            const hunted = cur!==apex && cnt[apex-1]>=thresh && (death===5 || f<2);
+            if(hunted){ nv = convert?apex:0; taken=true; }
+            else live = n===2||n===3;
             break;
           }
-          case 4: if(n===3) nv=blend(cnt,K,tie); break;
-          default: if(n===3) nv=pickMax(cnt,K,tie);
+          default: live = n===2||n===3;
         }
+        if(!taken && live){
+          nv = cur;
+          if(alleg===1) nv = dominant(cnt,K,cur);
+          else if(alleg===2 && e>f) nv = biggestRival(cnt,K,cur);
+        }
+      } else {
+        let j=0, fires=false;
+        switch(birth){
+          case 1:                                   /* three of a single species */
+            for(let k=0;k<K;k++) if(cnt[k]===3) pick[j++]=k+1;
+            fires = j>0;
+            break;
+          case 2: {                                 /* three left after cancellation */
+            let m=0;
+            for(let k=0;k<K;k++) if(cnt[k]>m) m=cnt[k];
+            if(m-(n-m)===3){ for(let k=0;k<K;k++) if(cnt[k]===m) pick[j++]=k+1; fires=true; }
+            break;
+          }
+          default:                                  /* classic: any three neighbours */
+            if(n===3){ for(let k=0;k<K;k++) if(cnt[k]) pick[j++]=k+1; fires=true; }
+        }
+        if(fires) nv = newborn(cnt,K,pick,j,colour);
       }
       out[i]=nv;
       if(nv!==cur) changed=true;
@@ -1768,20 +1815,51 @@ $("mapping").onchange=e=>{
     if(S.img){ pause(); snapshot(); seed(); }
   });
 });
-function syncModel(){
-  $("modelNote").textContent=NOTES[S.model];
-  const hunts = S.model===5||S.model===6;
+const PRESETS = {
+  classic: {death:0,birth:0,colour:"majority",alleg:0},
+  kin:     {death:1,birth:1,colour:"majority",alleg:0},
+  tension: {death:3,birth:2,colour:"majority",alleg:0},
+  crowd:   {death:2,birth:0,colour:"majority",alleg:0},
+  mutual:  {death:4,birth:0,colour:"majority",alleg:0},
+  hybrid:  {death:0,birth:0,colour:"blend",   alleg:0},
+  keystone:{death:5,birth:0,colour:"majority",alleg:0},
+  safety:  {death:6,birth:0,colour:"majority",alleg:0},
+  mimicry: {death:0,birth:0,colour:"majority",alleg:2}
+};
+function syncRules(){
+  $("deathNote").textContent=DEATH_NOTE[S.death];
+  $("birthNote").textContent=BIRTH_NOTE[S.birth];
+  const hunts=S.death===5||S.death===6;
   $("rowApex").hidden=!hunts;
   $("rowThresh").hidden=!hunts;
   $("rowConv").hidden=!hunts;
+  /* name the combination if it matches a preset, otherwise say Custom */
+  let name="custom";
+  for(const k in PRESETS){
+    const p=PRESETS[k];
+    if(p.death===S.death&&p.birth===S.birth&&p.colour===S.colour&&p.alleg===S.alleg){ name=k; break; }
+  }
+  $("preset").value=name;
 }
-$("model").onchange=e=>{ S.model=+e.target.value; syncModel(); };
-$("apex").onchange=e=>S.apex=+e.target.value;
-$("thresh").oninput=e=>{ S.thresh=+e.target.value; $("threshOut").textContent=S.thresh; };
+$("preset").onchange=e=>{
+  const p=PRESETS[e.target.value];
+  if(!p) return;
+  S.death=p.death; S.birth=p.birth; S.colour=p.colour; S.alleg=p.alleg;
+  $("death").value=String(S.death);
+  $("birth").value=String(S.birth);
+  $("colour").value=S.colour;
+  $("alleg").value=String(S.alleg);
+  syncRules();
+  flag($("preset").selectedOptions[0].textContent+" — "+DEATH_NOTE[S.death]);
+};
+$("apex").onchange   =e=>S.apex=+e.target.value;
+$("thresh").oninput =e=>{ S.thresh=+e.target.value; $("threshOut").textContent=S.thresh; };
 $("convert").onchange=e=>S.convert=+e.target.value;
+$("death").onchange =e=>{ S.death=+e.target.value; syncRules(); };
+$("birth").onchange =e=>{ S.birth=+e.target.value; syncRules(); };
+$("colour").onchange=e=>{ S.colour=e.target.value; syncRules(); };
+$("alleg").onchange =e=>{ S.alleg=+e.target.value; syncRules(); };
 $("wrap").onchange=e=>{ S.wrap=e.target.checked; tables(); };
-$("conquest").onchange=e=>S.conquest=e.target.checked;
-$("tie").onchange=e=>S.tie=e.target.value;
 $("trails").onchange=e=>{ S.trails=e.target.checked; draw(true); };
 $("grid").onchange=e=>{ S.grid=e.target.checked; drawOverlay();
   if(S.grid && view.scale*S.dpr<4) flag("Grid appears once you zoom in past ~2×"); };
@@ -1914,7 +1992,7 @@ let rt;
 window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(layout,120); });
 
 /* ------------------------------------------------------------------ boot */
-syncModel();
+syncRules();
 buildSwatches(); buildStats(); buildApex();
 resize(...boardDimsFor(+$("maxdim").value));
 count(); draw(true); stats();
