@@ -1,4 +1,4 @@
-# Simple HTML Games
+# Cellular Automata
 
 A collection of cellular automata you can actually play with. Every entry is a **single
 self-contained HTML file** — no build step, no npm install, no server. Download it, double-click it,
