@@ -69,6 +69,14 @@
 
 
   .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .counts{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+  .counts button{padding:5px 0;font-size:11px;border-radius:3px;min-width:0}
+  .counts button[aria-pressed=true]{background:#2b3340;border-color:var(--ink);color:#fff}
+  .spsel{display:flex;gap:5px;flex-wrap:wrap}
+  .spsel button{width:26px;height:26px;padding:0;position:relative}
+  .spsel button span{position:absolute;inset:5px;border-radius:2px}
+  .spsel button[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  .tool select{max-width:128px}
   .sw{height:34px;border:1px solid var(--line);border-radius:3px;background:var(--surface);
       position:relative;cursor:pointer;padding:0}
   .sw span{position:absolute;inset:7px;border-radius:2px}
@@ -209,31 +217,130 @@
     </div>
 
     <div class="group">
-      <h2>Source</h2>
-      <div class="row">
-        <button class="grow" id="pick">Load image…</button>
-        <button class="grow" id="blank">Empty board</button>
-      </div>
-      <input type="file" id="file" accept="image/*" hidden>
+      <h2>Display</h2>
       <div class="field">
-        <label for="maxdim">Board resolution <b><span id="dimOut">—</span> · <span id="cellsOut">—</span></b></label>
-        <select id="maxdim">
-          <option value="96">96 px long edge</option>
-          <option value="128">128 px long edge</option>
-          <option value="192">192 px long edge</option>
-          <option value="256" selected>256 px long edge</option>
-          <option value="384">384 px long edge</option>
-          <option value="512">512 px long edge</option>
-          <option value="768">768 px long edge</option>
-          <option value="1080">1080 px long edge</option>
-          <option value="1920">1920 px long edge</option>
-          <option value="0">Native — image size, or screen when empty</option>
+        <label for="palette">Palette</label>
+        <select id="palette">
+          <option value="signal" selected>Signal</option>
+          <option value="pure">Pure RGB</option>
+          <option value="bloom">Bloom</option>
+          <option value="image">From the image</option>
+        </select>
+        <p class="hint" id="paletteNote" style="margin-top:6px"></p>
+      </div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="grid"> Show grid (g)</label>
+      <label class="chk"><input type="checkbox" id="trails"> Motion trails</label>
+      <label class="chk"><input type="checkbox" id="autostop" checked> Pause when the board settles</label>
+      <button style="width:100%;margin-top:10px" id="save">Save frame as PNG</button>
+    </div>
+    <div class="group">
+      <h2>Rules</h2>
+      <div class="field">
+        <label for="preset">Preset</label>
+        <select id="preset">
+          <option value="classic" selected>Classic Conway</option>
+          <option value="kin">Kin only</option>
+          <option value="tension">Tension</option>
+          <option value="crowd">Kin crowding</option>
+          <option value="mutual">Mutualism</option>
+          <option value="hybrid">Hybrid birth</option>
+          <option value="keystone">Keystone predator</option>
+          <option value="safety">Safety in numbers</option>
+          <option value="custom">Custom…</option>
         </select>
       </div>
-      <p class="hint">This applies to empty boards too — the long edge comes from here, the shape from
-      the window, and anything already drawn is kept and re-centred. Drag an image anywhere, or paste
-      with ⌘/Ctrl+V. A 1920×1080 board is 2.07 million
-      cells — it runs, but expect a fraction of a second per generation and a shorter step-back history.</p>
+
+      <div class="field">
+        <label for="death">Death — what kills a living cell</label>
+        <select id="death">
+          <option value="0" selected>Any neighbour counts</option>
+          <option value="1">Kin only — foreigners are invisible</option>
+          <option value="2">Kin for company, anyone for crowding</option>
+          <option value="3">Friends minus enemies</option>
+          <option value="4">Mutualism — a foreigner saves you from solitude</option>
+          <option value="5">Hunted — one species preys on the rest</option>
+          <option value="6">Hunted unless sheltered by two kin</option>
+        </select>
+      </div>
+      <p class="hint" id="deathNote"></p>
+      <div class="field" id="rowApex" hidden>
+        <label for="apex">The predator</label>
+        <select id="apex"></select>
+      </div>
+      <div class="field" id="rowThresh" hidden>
+        <label>Predators needed <b><span id="threshOut">3</span></b></label>
+        <input type="range" id="thresh" min="1" max="6" value="3">
+      </div>
+      <div class="field" id="rowConv" hidden>
+        <label for="convert">When the predators win</label>
+        <select id="convert">
+          <option value="0" selected>Prey dies</option>
+          <option value="1">Prey converts — infection spreads</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="birth">Birth — when an empty cell fills</label>
+        <select id="birth">
+          <option value="0" selected>Exactly three neighbours, any species</option>
+          <option value="1">Exactly three of one species</option>
+          <option value="2">Three left after enemies cancel friends</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="colour">Newborn colour</label>
+        <select id="colour">
+          <option value="majority" selected>Majority of the parents</option>
+          <option value="blend">Blend — the hue between them</option>
+          <option value="parent">A random parent, weighted</option>
+          <option value="cycle">Take turns — round robin</option>
+          <option value="rare">The rarer species</option>
+          <option value="common">The commoner species</option>
+          <option value="mutate">Mutation — any species at all</option>
+          <option value="lowest">Lowest species</option>
+          <option value="empty">Nobody — contested cells stay empty</option>
+        </select>
+      </div>
+      <p class="hint" id="birthNote"></p>
+
+      <div class="field">
+        <label for="rulefam">Neighbour counts</label>
+        <select id="rulefam">
+          <option value="B3/S23" selected>Conway — B3 / S23</option>
+          <option value="B36/S23">HighLife — B36 / S23</option>
+          <option value="B3678/S34678">Day &amp; Night — B3678 / S34678</option>
+          <option value="B36/S125">2×2 — B36 / S125</option>
+          <option value="B3/S12345">Maze — B3 / S12345</option>
+          <option value="B3/S1234">Mazectric — B3 / S1234</option>
+          <option value="B34/S34">34 Life — B34 / S34</option>
+          <option value="B2/S">Seeds — B2 / S nothing</option>
+          <option value="custom">Custom…</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="scope">These counts apply to</label>
+        <select id="scope">
+          <option value="all" selected>Every species alike</option>
+          <option value="each">Each species separately</option>
+        </select>
+      </div>
+      <div class="field" id="rowSpTabs" hidden>
+        <label>Editing <b id="spName">species 1</b></label>
+        <div class="spsel" id="ruleSp"></div>
+      </div>
+      <div class="field">
+        <label>Born on <b id="bOut">3</b></label>
+        <div class="counts" id="bRow"></div>
+      </div>
+      <div class="field">
+        <label>Survives on <b id="sOut">2, 3</b></label>
+        <div class="counts" id="sRow"></div>
+      </div>
+      <p class="hint" id="countNote"></p>
+
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="wrap" checked> Wrap edges (torus)</label>
+      <p class="hint">Death decides <i>which</i> neighbours are counted; birth decides when an empty
+      cell fills and in what colour; the counts above decide <i>how many</i> of them it takes.</p>
     </div>
 
     <div class="group">
@@ -294,109 +401,6 @@
       is a mass die-off; thinning to 40–60% keeps the picture legible.</p>
     </div>
 
-    <div class="group">
-      <h2>Rules</h2>
-      <div class="field">
-        <label for="preset">Preset</label>
-        <select id="preset">
-          <option value="classic" selected>Classic Conway</option>
-          <option value="kin">Kin only</option>
-          <option value="tension">Tension</option>
-          <option value="crowd">Kin crowding</option>
-          <option value="mutual">Mutualism</option>
-          <option value="hybrid">Hybrid birth</option>
-          <option value="keystone">Keystone predator</option>
-          <option value="safety">Safety in numbers</option>
-          <option value="mimicry">Mimicry</option>
-          <option value="custom">Custom…</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label for="death">Death — what kills a living cell</label>
-        <select id="death">
-          <option value="0" selected>Any neighbour counts</option>
-          <option value="1">Kin only — foreigners are invisible</option>
-          <option value="2">Kin for company, anyone for crowding</option>
-          <option value="3">Friends minus enemies</option>
-          <option value="4">Mutualism — a foreigner saves you from solitude</option>
-          <option value="5">Hunted — one species preys on the rest</option>
-          <option value="6">Hunted unless sheltered by two kin</option>
-        </select>
-      </div>
-      <p class="hint" id="deathNote"></p>
-      <div class="field" id="rowApex" hidden>
-        <label for="apex">The predator</label>
-        <select id="apex"></select>
-      </div>
-      <div class="field" id="rowThresh" hidden>
-        <label>Predators needed <b><span id="threshOut">3</span></b></label>
-        <input type="range" id="thresh" min="1" max="6" value="3">
-      </div>
-      <div class="field" id="rowConv" hidden>
-        <label for="convert">When the predators win</label>
-        <select id="convert">
-          <option value="0" selected>Prey dies</option>
-          <option value="1">Prey converts — infection spreads</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label for="birth">Birth — when an empty cell fills</label>
-        <select id="birth">
-          <option value="0" selected>Exactly three neighbours, any species</option>
-          <option value="1">Exactly three of one species</option>
-          <option value="2">Three left after enemies cancel friends</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="colour">Newborn colour</label>
-        <select id="colour">
-          <option value="majority" selected>Majority of the parents</option>
-          <option value="blend">Blend — the hue between them</option>
-          <option value="parent">A random parent, weighted</option>
-          <option value="cycle">Take turns — round robin</option>
-          <option value="rare">The rarer species</option>
-          <option value="common">The commoner species</option>
-          <option value="mutate">Mutation — any species at all</option>
-          <option value="lowest">Lowest species</option>
-          <option value="empty">Nobody — contested cells stay empty</option>
-        </select>
-      </div>
-      <p class="hint" id="birthNote"></p>
-
-      <div class="field">
-        <label for="alleg">Allegiance — can a living cell change species</label>
-        <select id="alleg">
-          <option value="0" selected>Never — colour is inherited for life</option>
-          <option value="1">Conquest — adopt whoever dominates the neighbourhood</option>
-          <option value="2">Mimicry — when outnumbered, join the biggest rival</option>
-        </select>
-      </div>
-
-      <label class="chk" style="margin-top:10px"><input type="checkbox" id="wrap" checked> Wrap edges (torus)</label>
-      <p class="hint">The thresholds never move: under two neighbours is solitude, over three is
-      crowding, two or three survives, three fills a cell. Death decides <i>which</i> neighbours are
-      counted; birth decides when a cell fills and in what colour.</p>
-    </div>
-
-    <div class="group">
-      <h2>Display</h2>
-      <div class="field">
-        <label for="palette">Palette</label>
-        <select id="palette">
-          <option value="signal" selected>Signal</option>
-          <option value="pure">Pure RGB</option>
-          <option value="bloom">Bloom</option>
-          <option value="image">From the image</option>
-        </select>
-        <p class="hint" id="paletteNote" style="margin-top:6px"></p>
-      </div>
-      <label class="chk" style="margin-top:10px"><input type="checkbox" id="grid"> Show grid (g)</label>
-      <label class="chk"><input type="checkbox" id="trails"> Motion trails</label>
-      <label class="chk"><input type="checkbox" id="autostop" checked> Pause when the board settles</label>
-      <button style="width:100%;margin-top:10px" id="save">Save frame as PNG</button>
-    </div>
   </aside>
 
   <main class="stage">
@@ -459,6 +463,26 @@
           <button id="pan" aria-pressed="false" title="Pan instead of paint">Pan ✋</button>
         </div>
       </div>
+      <div class="tool">
+        <u>Board — <b><span id="dimOut">—</span> · <span id="cellsOut">—</span></b></u>
+        <div class="row">
+          <select id="maxdim" title="Long edge of the board, in cells. Applies to empty boards too — anything already drawn is kept and re-centred.">
+            <option value="96">96 px</option>
+            <option value="128">128 px</option>
+            <option value="192">192 px</option>
+            <option value="256" selected>256 px</option>
+            <option value="384">384 px</option>
+            <option value="512">512 px</option>
+            <option value="768">768 px</option>
+            <option value="1080">1080 px</option>
+            <option value="1920">1920 px</option>
+            <option value="0">Native</option>
+          </select>
+          <button id="pick" title="Load an image to seed the board — or drag one anywhere, or paste with Ctrl/Cmd+V">Image…</button>
+          <button id="blank" title="Empty board at this resolution">Empty</button>
+        </div>
+        <input type="file" id="file" accept="image/*" hidden>
+      </div>
       <div class="tool tool--end">
         <u>Library</u>
         <div class="row"><button id="lib2">Patterns</button></div>
@@ -506,9 +530,9 @@
     the living pixels.</p>
 
     <h3>Cross-species rules</h3>
-    <p>The thresholds never move — under two is solitude, over three is crowding, two or three
-    survives, three fills a cell. What you choose is which neighbours those counts are taken over,
-    split into four independent questions:</p>
+    <p>Conway's counts — under two is solitude, over three is crowding, two or three survives,
+    three fills a cell — are the starting point, not a fixed law. What you choose is which
+    neighbours the counts are taken over, and what the counts themselves are:</p>
     <ul>
       <li><b>Death</b> — whose presence counts against a living cell: everyone, only kin, friends
       minus enemies, or a predator species that hunts the rest.</li>
@@ -516,12 +540,12 @@
       species, or three left after enemies cancel friends.</li>
       <li><b>Newborn colour</b> — which species appears: the majority parent, a blend of their hues,
       the rarer or commoner one, a mutation, or nothing at all.</li>
-      <li><b>Allegiance</b> — whether a living cell can change species: never, on local dominance
-      (conquest), or defect to the biggest rival whenever outnumbered (mimicry, which fires in
-      standoffs where no one species dominates outright).</li>
+      <li><b>Neighbour counts</b> — how many it takes to be born and to survive. B3/S23 is Conway;
+      B36/S23 is HighLife, which has a replicator; B3/S12345 is Maze. Set them per species and one
+      colour can run Maze while another stays Conway, on the same board.</li>
     </ul>
-    <p>The <b>Preset</b> menu fills all four in at once for the named combinations, and flips to
-    Custom the moment you change one.</p>
+    <p>The <b>Preset</b> menu fills the first three in at once for the named combinations, and flips
+    to Custom the moment you change one. Counts are separate — they apply on top of any preset.</p>
     <h3>Keys</h3>
     <p><b>Space</b> play / pause · <b>←</b> <b>→</b> or <b>,</b> <b>.</b> step a generation ·
     <b>R</b> random soup · <b>C</b> clear</p>
@@ -683,7 +707,9 @@ const S = {
   W:128, H:96, K:3, cells:null, scratch:null, pool:null,
   gen:0, running:false, fps:12,
   wrap:true,
-  death:0, birth:0, colour:"majority", alleg:0, apex:1, thresh:3, convert:0,
+  death:0, birth:0, colour:"majority", apex:1, thresh:3, convert:0,
+  bmask:new Int32Array(6).fill(1<<3), smask:new Int32Array(6).fill((1<<2)|(1<<3)),
+  smin:new Int32Array(6), smax:new Int32Array(6), scope:"all", ruleSp:1,
   palette:"signal", mapping:"image", imgPal:null,
   trails:false, fade:0.30, grid:false, autostop:true,
   brush:1, species:1, mode:"paint",
@@ -826,26 +852,11 @@ function newborn(cnt,K,list,j,rule){
 }
 /* the largest foreign species, ties broken at random — this is what an outnumbered
    mimic defects to, and it fires in cases where no single species dominates outright */
-function biggestRival(cnt,K,cur){
-  let m=0;
-  for(let k=0;k<K;k++) if(k!==cur-1 && cnt[k]>m) m=cnt[k];
-  if(!m) return cur;
-  let j=0;
-  for(let k=0;k<K;k++) if(k!==cur-1 && cnt[k]===m) tiedList[j++]=k+1;
-  return j===1 ? tiedList[0] : tiedList[(Math.random()*j)|0];
-}
-function dominant(cnt,K,cur){
-  let m=0,j=0;
-  for(let k=0;k<K;k++) if(cnt[k]>m) m=cnt[k];
-  if(!m) return cur;
-  for(let k=0;k<K;k++) if(cnt[k]===m) j++;
-  if(j>1) return cur;
-  for(let k=0;k<K;k++) if(cnt[k]===m) return k+1;
-  return cur;
-}
 function step(){
   const t0=performance.now();
-  const {W,H,cells,xm,xp,ym,yp,col,cnt,totals,K,death,birth,colour,alleg,apex,thresh,convert}=S;
+  const {W,H,cells,xm,xp,ym,yp,col,cnt,totals,K,death,birth,colour,apex,thresh,convert,
+         bmask,smask,smin,smax}=S;
+  const per = S.scope==="each";
   let out=S.scratch;
   if(!out || out.length!==cells.length) out=new Uint8Array(cells.length);
   totals.fill(0);
@@ -877,41 +888,44 @@ function step(){
       let nv=0;
       if(cur){
         const f=cnt[cur-1], e=n-f;
+        const si = per ? cur-1 : 0;
+        const sm = smask[si], lo = smin[si], hi = smax[si];
         let live=false, taken=false;
         switch(death){
-          case 1: live = f===2||f===3; break;
-          case 2: live = f>=2 && n<=3; break;
-          case 3: { const net=f-e; live = net===2||net===3; break; }
-          case 4: live = (n===2||n===3) || (n===1 && e>=1); break;
+          case 1: live = (sm>>f&1)!==0; break;
+          case 2: live = f>=lo && n<=hi; break;
+          case 3: { const net=f-e; live = net>=0 && (sm>>net&1)!==0; break; }
+          case 4: live = (sm>>n&1)!==0 || (n===lo-1 && e>=1); break;
           case 5:
           case 6: {
-            const hunted = cur!==apex && cnt[apex-1]>=thresh && (death===5 || f<2);
+            const hunted = cur!==apex && cnt[apex-1]>=thresh && (death===5 || f<lo);
             if(hunted){ nv = convert?apex:0; taken=true; }
-            else live = n===2||n===3;
+            else live = (sm>>n&1)!==0;
             break;
           }
-          default: live = n===2||n===3;
+          default: live = (sm>>n&1)!==0;
         }
-        if(!taken && live){
-          nv = cur;
-          if(alleg===1) nv = dominant(cnt,K,cur);
-          else if(alleg===2 && e>f) nv = biggestRival(cnt,K,cur);
-        }
+        if(!taken && live) nv = cur;
       } else {
         let j=0, fires=false;
         switch(birth){
-          case 1:                                   /* three of a single species */
-            for(let k=0;k<K;k++) if(cnt[k]===3) pick[j++]=k+1;
+          case 1:                                   /* a birth count of one species */
+            for(let k=0;k<K;k++){ const c=cnt[k];
+              if(c>0 && (bmask[per?k:0]>>c&1)) pick[j++]=k+1; }
             fires = j>0;
             break;
-          case 2: {                                 /* three left after cancellation */
+          case 2: {                                 /* what is left after cancellation */
             let m=0;
             for(let k=0;k<K;k++) if(cnt[k]>m) m=cnt[k];
-            if(m-(n-m)===3){ for(let k=0;k<K;k++) if(cnt[k]===m) pick[j++]=k+1; fires=true; }
+            const net=m-(n-m);
+            if(m>0 && net>=0){ for(let k=0;k<K;k++)
+              if(cnt[k]===m && (bmask[per?k:0]>>net&1)) pick[j++]=k+1; }
+            fires = j>0;
             break;
           }
-          default:                                  /* classic: any three neighbours */
-            if(n===3){ for(let k=0;k<K;k++) if(cnt[k]) pick[j++]=k+1; fires=true; }
+          default:                                  /* classic: the total neighbour count */
+            for(let k=0;k<K;k++) if(cnt[k] && (bmask[per?k:0]>>n&1)) pick[j++]=k+1;
+            fires = j>0;
         }
         if(fires) nv = newborn(cnt,K,pick,j,colour);
       }
@@ -1541,6 +1555,7 @@ function buildSwatches(){
   e.innerHTML="<span></span>";
   el.appendChild(e);
   el.querySelectorAll(".sw").forEach(b => b.onclick=()=>setSpecies(+b.dataset.sp));
+  buildRuleSp();
 }
 function setSpecies(n){
   if(n>S.K){ flag("Only "+S.K+" species on this board"); return; }
@@ -1816,16 +1831,90 @@ $("mapping").onchange=e=>{
   });
 });
 const PRESETS = {
-  classic: {death:0,birth:0,colour:"majority",alleg:0},
-  kin:     {death:1,birth:1,colour:"majority",alleg:0},
-  tension: {death:3,birth:2,colour:"majority",alleg:0},
-  crowd:   {death:2,birth:0,colour:"majority",alleg:0},
-  mutual:  {death:4,birth:0,colour:"majority",alleg:0},
-  hybrid:  {death:0,birth:0,colour:"blend",   alleg:0},
-  keystone:{death:5,birth:0,colour:"majority",alleg:0},
-  safety:  {death:6,birth:0,colour:"majority",alleg:0},
-  mimicry: {death:0,birth:0,colour:"majority",alleg:2}
+  classic: {death:0,birth:0,colour:"majority"},
+  kin:     {death:1,birth:1,colour:"majority"},
+  tension: {death:3,birth:2,colour:"majority"},
+  crowd:   {death:2,birth:0,colour:"majority"},
+  mutual:  {death:4,birth:0,colour:"majority"},
+  hybrid:  {death:0,birth:0,colour:"blend"   },
+  keystone:{death:5,birth:0,colour:"majority"},
+  safety:  {death:6,birth:0,colour:"majority"}
 };
+
+/* ------------------------------------------- birth / survival neighbour counts */
+const FAMS={"B3/S23":"Conway","B36/S23":"HighLife","B3678/S34678":"Day & Night",
+  "B36/S125":"2×2","B3/S12345":"Maze","B3/S1234":"Mazectric","B34/S34":"34 Life","B2/S":"Seeds"};
+function maskOf(t){ let m=0; for(const ch of t){ const d=+ch; if(d>=0&&d<=8) m|=1<<d; } return m; }
+function digitsOf(m){ let o=""; for(let d=0;d<=8;d++) if(m>>d&1) o+=d; return o; }
+function famString(){ return "B"+digitsOf(S.bmask[0])+"/S"+digitsOf(S.smask[0]); }
+function recalcMasks(){
+  for(let k=0;k<6;k++){
+    let lo=9,hi=-1;
+    for(let d=0;d<=8;d++) if(S.smask[k]>>d&1){ if(d<lo)lo=d; if(d>hi)hi=d; }
+    S.smin[k]=lo; S.smax[k]=hi;
+  }
+}
+function setFamily(str){
+  const m=/^B([0-8]*)\/S([0-8]*)$/.exec(str); if(!m) return;
+  const b=maskOf(m[1]), v=maskOf(m[2]);
+  for(let k=0;k<6;k++){ S.bmask[k]=b; S.smask[k]=v; }
+  recalcMasks(); syncCounts();
+}
+function ruleIdx(){ return S.scope==="each" ? S.ruleSp-1 : 0; }
+function buildCounts(){
+  for(const which of ["b","s"]){
+    const el=$(which+"Row"); el.innerHTML="";
+    for(let d=0;d<=8;d++){
+      const b=document.createElement("button");
+      b.textContent=String(d); b.dataset.d=String(d);
+      b.title=(which==="b"?"Fill an empty cell on ":"Stay alive on ")+d+" neighbours";
+      b.onclick=()=>toggleCount(which,d);
+      el.appendChild(b);
+    }
+  }
+}
+function toggleCount(which,d){
+  const arr = which==="b" ? S.bmask : S.smask;
+  if(S.scope==="each") arr[S.ruleSp-1]^=1<<d;
+  else for(let k=0;k<6;k++) arr[k]^=1<<d;
+  recalcMasks(); syncCounts();
+  flag((which==="b"?"Born on ":"Survives on ")+(digitsOf(arr[ruleIdx()])||"nothing")
+      +(S.scope==="each" ? " — species "+S.ruleSp+" only" : ""));
+}
+function buildRuleSp(){
+  const el=$("ruleSp"); if(!el) return;
+  el.innerHTML="";
+  if(S.ruleSp>S.K) S.ruleSp=1;
+  const p=P();
+  for(let k=1;k<=S.K;k++){
+    const b=document.createElement("button");
+    b.dataset.sp=String(k);
+    b.title="Edit the counts for species "+k;
+    b.setAttribute("aria-pressed",String(S.ruleSp===k));
+    b.innerHTML='<span style="background:rgb('+p[k-1][0]+','+p[k-1][1]+','+p[k-1][2]+')"></span>';
+    b.onclick=()=>{ S.ruleSp=k; buildRuleSp(); syncCounts(); };
+    el.appendChild(b);
+  }
+}
+function syncCounts(){
+  const i=ruleIdx();
+  const bd=digitsOf(S.bmask[i]), sd=digitsOf(S.smask[i]);
+  $("bOut").textContent = bd ? bd.split("").join(", ") : "never";
+  $("sOut").textContent = sd ? sd.split("").join(", ") : "never";
+  $("bRow").querySelectorAll("button").forEach(b=>
+    b.setAttribute("aria-pressed",String(!!(S.bmask[i]>>(+b.dataset.d)&1))));
+  $("sRow").querySelectorAll("button").forEach(b=>
+    b.setAttribute("aria-pressed",String(!!(S.smask[i]>>(+b.dataset.d)&1))));
+  let same=true;
+  for(let k=1;k<S.K;k++) if(S.bmask[k]!==S.bmask[0]||S.smask[k]!==S.smask[0]) same=false;
+  const fam=famString();
+  $("rulefam").value = (same && FAMS[fam]) ? fam : "custom";
+  $("rowSpTabs").hidden = S.scope!=="each";
+  $("spName").textContent = "species "+S.ruleSp;
+  $("countNote").textContent = S.scope==="each"
+    ? "Every species keeps its own counts, so one can run Maze while another stays Conway. A birth count of 0 never fires — an empty cell with no neighbours has no species to inherit."
+    : "Conway is born on 3 and survives on 2 or 3. Death and Birth above decide which neighbours get counted; these decide how many it takes.";
+}
 function syncRules(){
   $("deathNote").textContent=DEATH_NOTE[S.death];
   $("birthNote").textContent=BIRTH_NOTE[S.birth];
@@ -1837,18 +1926,17 @@ function syncRules(){
   let name="custom";
   for(const k in PRESETS){
     const p=PRESETS[k];
-    if(p.death===S.death&&p.birth===S.birth&&p.colour===S.colour&&p.alleg===S.alleg){ name=k; break; }
+    if(p.death===S.death&&p.birth===S.birth&&p.colour===S.colour){ name=k; break; }
   }
   $("preset").value=name;
 }
 $("preset").onchange=e=>{
   const p=PRESETS[e.target.value];
   if(!p) return;
-  S.death=p.death; S.birth=p.birth; S.colour=p.colour; S.alleg=p.alleg;
+  S.death=p.death; S.birth=p.birth; S.colour=p.colour;
   $("death").value=String(S.death);
   $("birth").value=String(S.birth);
   $("colour").value=S.colour;
-  $("alleg").value=String(S.alleg);
   syncRules();
   flag($("preset").selectedOptions[0].textContent+" — "+DEATH_NOTE[S.death]);
 };
@@ -1858,7 +1946,13 @@ $("convert").onchange=e=>S.convert=+e.target.value;
 $("death").onchange =e=>{ S.death=+e.target.value; syncRules(); };
 $("birth").onchange =e=>{ S.birth=+e.target.value; syncRules(); };
 $("colour").onchange=e=>{ S.colour=e.target.value; syncRules(); };
-$("alleg").onchange =e=>{ S.alleg=+e.target.value; syncRules(); };
+$("rulefam").onchange=e=>{ const v=e.target.value; if(v==="custom"){ syncCounts(); return; }
+  setFamily(v); flag(FAMS[v]+" — "+v); };
+$("scope").onchange =e=>{ S.scope=e.target.value;
+  if(S.scope==="all"){ for(let k=1;k<6;k++){ S.bmask[k]=S.bmask[0]; S.smask[k]=S.smask[0]; } recalcMasks(); }
+  buildRuleSp(); syncCounts();
+  flag(S.scope==="each" ? "Each species now carries its own birth and survival counts"
+                        : "One set of counts for every species"); };
 $("wrap").onchange=e=>{ S.wrap=e.target.checked; tables(); };
 $("trails").onchange=e=>{ S.trails=e.target.checked; draw(true); };
 $("grid").onchange=e=>{ S.grid=e.target.checked; drawOverlay();
@@ -1992,8 +2086,9 @@ let rt;
 window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(layout,120); });
 
 /* ------------------------------------------------------------------ boot */
+recalcMasks(); buildCounts();
 syncRules();
-buildSwatches(); buildStats(); buildApex();
+buildSwatches(); buildStats(); buildApex(); syncCounts();
 resize(...boardDimsFor(+$("maxdim").value));
 count(); draw(true); stats();
 brushPreview(); renderLib(); editButtons(); syncPalette(); openLib(true);

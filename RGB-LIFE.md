@@ -30,8 +30,9 @@ looks; it does not change how many species exist.
 
 ## Rules, in four independent parts
 
-The thresholds never move — under two neighbours is solitude, over three is crowding, two or three
-survives, three fills a cell. What you choose is which neighbours those counts are taken over:
+Conway's counts — under two neighbours is solitude, over three is crowding, two or three survives,
+three fills a cell — are the starting point, not a fixed law. You choose which neighbours the counts
+are taken over, and what the counts themselves are:
 
 **Death — what kills a living cell**
 
@@ -51,13 +52,16 @@ enemies cancel friends.
 **Newborn colour:** majority parent · blend of their hues · a random parent weighted by count · round
 robin · the rarer species · the commoner species · mutation · lowest · nobody.
 
-**Allegiance — whether a living cell can change species:** never · conquest (adopt whoever dominates)
-· mimicry (defect to the biggest rival whenever outnumbered, including standoffs where nothing
-dominates outright).
+**Neighbour counts — how many it takes.** Nine toggles for birth and nine for survival, plus named
+families: Conway B3/S23, HighLife B36/S23 (which has a replicator), Day & Night, 2×2, Maze
+B3/S12345, Mazectric, 34 Life, Seeds B2/S. Set **These counts apply to** to *each species
+separately* and one colour can run Maze while another stays Conway on the same board — pick the
+species you are editing from the swatches. A birth count of 0 never fires: an empty cell with no
+neighbours has no species to inherit.
 
-A **Preset** menu fills all four at once for the named combinations — Classic Conway, Kin only,
-Tension, Kin crowding, Mutualism, Hybrid birth, Keystone predator, Safety in numbers, Mimicry — and
-flips to Custom the moment you change one.
+A **Preset** menu fills the first three at once for the named combinations — Classic Conway, Kin
+only, Tension, Kin crowding, Mutualism, Hybrid birth, Keystone predator, Safety in numbers — and
+flips to Custom the moment you change one. Counts are independent and apply on top of any preset.
 
 ## Pattern library
 
@@ -104,9 +108,11 @@ Step-back history is budgeted by memory, not frame count — 400 generations on 
 
 ## Things worth trying
 
-- Six species sampled from a sunset photo, the **Mimicry** preset, motion trails on.
+- Six species sampled from a sunset photo, **Keystone predator**, motion trails on.
 - **Keystone predator** with prey converting: watch one colour eat the picture.
 - Death set to *mutualism* with newborn colour set to *blend* — a combination none of the presets covers.
 - A blank board, **Hybrid birth**, and a few stamped gliders aimed at each other — the collisions
   produce colours that were never in the seed.
 - Zoom to 8× on one corner and run at 120 gen/s.
+- Per-species counts with **Kin only**: give one species B3/S23 and another B3/S1234, then watch the
+  second one strangle the first purely by outliving it.
