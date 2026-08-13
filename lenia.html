@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lenia — continuous cellular automaton</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0e1013; --panel:#15181d; --panel2:#1c2027; --line:#282e37;
+  --ink:#dfe4ec; --dim:#8d97a8; --dimmer:#5b6474;
+  --acc:#22d3ee; --amber:#ffc73d;
+  --r:#ff3b52; --y:#ffc73d; --g:#2fe08a; --c:#22d3ee; --b:#4b86ff; --m:#c46bff;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --display:"Space Grotesk",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--void);color:var(--ink);font-family:var(--mono);font-size:12px;
+  overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+#bar{height:46px;display:flex;align-items:center;gap:6px;padding:0 10px;
+  background:var(--panel);border-bottom:1px solid var(--line)}
+#bar .left,#bar .right{flex:1;display:flex;align-items:center;gap:6px}
+#bar .right{justify-content:flex-end}
+#bar .mid{display:flex;align-items:center;gap:6px}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:5px;
+  padding:6px 10px;cursor:pointer;letter-spacing:.03em;white-space:nowrap}
+.btn:hover{border-color:var(--dimmer);background:#1e242e}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.btn[disabled]{opacity:.4;cursor:default}
+.btn.hi{border-color:var(--acc);color:var(--acc)}
+.btn.play{min-width:52px;font-size:14px;line-height:1}
+.tag{color:var(--dimmer);letter-spacing:.12em;font-size:10px;text-transform:uppercase}
+#speed{width:120px}
+#brand{font-family:var(--display);font-weight:700;letter-spacing:.02em;font-size:16px;margin-right:10px}
+#brand b{color:var(--acc)}
+#wrap{display:flex;height:calc(100% - 46px)}
+#stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 40%,#171b21 0%,#08090c 75%);min-width:0}
+#view{image-rendering:pixelated;box-shadow:0 0 0 1px var(--line),0 18px 60px -20px #000;
+  cursor:crosshair;touch-action:none;max-width:100%;max-height:100%}
+#hud{position:absolute;left:12px;bottom:10px;color:var(--dim);pointer-events:none;
+  font-size:11px;line-height:1.6;text-shadow:0 1px 3px #000}
+#hud b{color:var(--ink);font-weight:600}
+#toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#0e1319ee;
+  border:1px solid var(--line);border-radius:5px;padding:7px 12px;opacity:0;
+  transition:opacity .25s;pointer-events:none;max-width:80%;text-align:center}
+#toast.on{opacity:1}
+#side{width:304px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+  overflow-y:auto;overflow-x:hidden}
+#side.closed{width:0}
+#side::-webkit-scrollbar{width:8px}
+#side::-webkit-scrollbar-thumb{background:#2a323d;border-radius:4px}
+.sec{border-bottom:1px solid var(--line);padding:12px 14px}
+.sec h3{margin:0 0 10px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dimmer);
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec h3 span{text-transform:none;letter-spacing:0;color:var(--dimmer)}
+.row{display:flex;align-items:center;gap:8px;margin:7px 0}
+.row label{width:62px;color:var(--dim);flex:none}
+.row input[type=range]{flex:1;min-width:0}
+.val{width:58px;text-align:right;color:var(--acc);flex:none;font-variant-numeric:tabular-nums}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:6px 4px;
+  cursor:pointer;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip:hover{border-color:var(--dimmer)}
+.chip.on{border-color:var(--acc);color:var(--acc);background:#102630}
+.gl{color:var(--dimmer);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 5px}
+.gl:first-child{margin-top:0}
+.note{color:var(--dimmer);line-height:1.55;margin-top:8px}
+canvas.plot{width:100%;display:block;background:#0b0d10;border:1px solid var(--line);border-radius:5px}
+.kwrap{display:flex;gap:8px}
+.kwrap canvas{border:1px solid var(--line);border-radius:5px;background:#0b0d10}
+#kimg{width:88px;height:88px;flex:none;image-rendering:pixelated}
+#kprof{flex:1;height:88px;min-width:0}
+input[type=range]{-webkit-appearance:none;appearance:none;height:20px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:#2b3440;border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:#2b3440;border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:var(--acc);margin-top:-4.5px;cursor:pointer;border:none}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--acc);
+  cursor:pointer;border:none}
+input:disabled::-webkit-slider-thumb{background:#3d4653}
+select{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:5px 6px;flex:1;min-width:0}
+#modal{position:fixed;inset:0;background:#05070ad8;display:none;align-items:center;justify-content:center;
+  padding:24px;z-index:20}
+#modal.on{display:flex}
+#modal .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;max-width:680px;
+  max-height:88vh;overflow:auto;padding:22px 26px;line-height:1.65}
+#modal h2{font-family:var(--display);margin:0 0 4px;font-size:20px;letter-spacing:-.01em}
+#modal h4{margin:18px 0 4px;color:var(--acc);font-size:12px;letter-spacing:.06em}
+#modal p{margin:6px 0;color:#c3cddb}
+#modal code{background:#0b0d10;border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--acc)}
+#modal .eq{background:#0b0d10;border:1px solid var(--line);border-left:2px solid var(--acc);
+  border-radius:4px;padding:10px 14px;margin:8px 0;color:#dbe6f2;overflow-x:auto;white-space:nowrap}
+kbd{background:#0b0d10;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;
+  padding:1px 6px;color:var(--ink)}
+@media (max-width:860px){
+  #side{position:absolute;right:0;top:46px;height:calc(100% - 46px);z-index:6;box-shadow:-20px 0 50px -20px #000}
+  #bar .tag{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <div class="left">
+    <span id="brand">LEN<b>IA</b></span>
+    <button class="btn" id="bClear" title="Empty the world (C)">clear</button>
+    <button class="btn" id="bReset" title="Re-seed the current preset (R)">reset</button>
+    <button class="btn" id="bRandSeed" title="Fresh random soup (S)">soup</button>
+  </div>
+  <div class="mid">
+    <button class="btn" id="bBack" title="Step back (←)">‹</button>
+    <button class="btn play" id="bPlay" title="Play / pause (space)">▶</button>
+    <button class="btn" id="bFwd" title="Step forward (→)">›</button>
+  </div>
+  <div class="right">
+    <span class="tag">steps/s</span>
+    <input type="range" id="speed" min="1" max="400" value="60">
+    <span class="val" id="speedV">60</span>
+    <button class="btn" id="bInfo" title="How Lenia works">?</button>
+    <button class="btn" id="bPanel" title="Toggle panel (P)">▤</button>
+  </div>
+</div>
+
+<div id="wrap">
+  <div id="stage">
+    <canvas id="view"></canvas>
+    <div id="hud"></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="side">
+    <div class="sec">
+      <h3>Presets</h3>
+      <div id="presets"></div>
+      <div class="note" id="presetNote"></div>
+    </div>
+
+    <div class="sec">
+      <h3>Discover <span id="findCount"></span></h3>
+      <div class="row"><label>hunt for</label>
+        <select id="findMode">
+          <option value="any">anything alive</option>
+          <option value="solitons">solitons — small movers</option>
+          <option value="worms">worms — thin filaments</option>
+          <option value="spores">spores — many particles</option>
+          <option value="colony">colonies — solid growth</option>
+          <option value="chaos">chaos — boiling turbulence</option>
+        </select></div>
+      <div class="grid2" style="margin-top:8px">
+        <button class="btn hi" id="bFind" title="F">find life</button>
+        <button class="btn" id="bMutate" title="M">mutate</button>
+        <button class="btn" id="bRandP" title="Shift+R">randomize</button>
+        <button class="btn" id="bCopy">copy params</button>
+      </div>
+      <div class="note" id="findNote">Each candidate is simulated off-screen on a scratch world and measured — fill, thickness, blob count, churn — then kept only if it matches the shape you asked for.</div>
+    </div>
+
+    <div class="sec">
+      <h3>Kernel K <span id="kinfo"></span></h3>
+      <div class="kwrap">
+        <canvas id="kimg" width="88" height="88"></canvas>
+        <canvas id="kprof" class="plot" width="180" height="88"></canvas>
+      </div>
+      <div class="row"><label>radius R</label><input type="range" id="R" min="2" max="60" step="1" value="13"><span class="val" id="RV">13</span></div>
+      <div class="row"><label>rings</label>
+        <div class="grid4" style="flex:1">
+          <div class="chip" data-rings="1">1</div><div class="chip" data-rings="2">2</div>
+          <div class="chip" data-rings="3">3</div><div class="chip" data-rings="4">4</div>
+        </div></div>
+      <div class="row" id="rowB0"><label>β₁</label><input type="range" id="b0" min="0" max="1" step="0.01" value="1"><span class="val" id="b0V">1.00</span></div>
+      <div class="row" id="rowB1"><label>β₂</label><input type="range" id="b1" min="0" max="1" step="0.01" value="0.5"><span class="val" id="b1V">0.50</span></div>
+      <div class="row" id="rowB2"><label>β₃</label><input type="range" id="b2" min="0" max="1" step="0.01" value="0.5"><span class="val" id="b2V">0.50</span></div>
+      <div class="row" id="rowB3"><label>β₄</label><input type="range" id="b3" min="0" max="1" step="0.01" value="0.5"><span class="val" id="b3V">0.50</span></div>
+      <div class="row"><label>shape</label>
+        <select id="core">
+          <option value="exponential">exponential bump</option>
+          <option value="polynomial">polynomial bump</option>
+          <option value="rectangular">rectangular step</option>
+        </select></div>
+      <div class="note">Radius is free — the convolution runs through an FFT, so R=40 costs exactly what R=4 costs.</div>
+    </div>
+
+    <div class="sec">
+      <h3>Growth G</h3>
+      <canvas id="gplot" class="plot" width="272" height="104"></canvas>
+      <div class="row"><label>μ centre</label><input type="range" id="mu" min="0.005" max="0.6" step="0.001" value="0.15"><span class="val" id="muV">0.150</span></div>
+      <div class="row"><label>σ width</label><input type="range" id="sigma" min="0.001" max="0.15" step="0.0005" value="0.017"><span class="val" id="sigmaV">0.0170</span></div>
+      <div class="row"><label>curve</label>
+        <select id="growth">
+          <option value="gaussian">gaussian</option>
+          <option value="polynomial">polynomial</option>
+          <option value="step">step (hard)</option>
+        </select></div>
+      <div class="row"><label>T</label><input type="range" id="T" min="1" max="60" step="1" value="10"><span class="val" id="TV">10</span></div>
+      <div class="note">Bars are a live histogram of the potential U. Lower T = bigger jumps per step, so the world evolves further per second.</div>
+    </div>
+
+    <div class="sec">
+      <h3>World</h3>
+      <div class="row"><label>grid</label>
+        <select id="size">
+          <option value="128">128 × 128</option>
+          <option value="256" selected>256 × 256</option>
+          <option value="512">512 × 512</option>
+          <option value="1024">1024 × 1024</option>
+        </select></div>
+      <div class="row"><label>colour</label>
+        <select id="cmap">
+          <option value="spectrum">spectrum</option><option value="ember">ember</option>
+          <option value="bio">bio</option><option value="plasma">plasma</option>
+          <option value="rgb">channels</option><option value="ash">ash</option></select></div>
+      <div class="row"><label>brush</label><input type="range" id="brush" min="1" max="60" step="1" value="14"><span class="val" id="brushV">14</span></div>
+      <div class="note">Drag to paint, <kbd>shift</kbd>+drag or right-drag to erase. The world wraps at every edge. Bigger grids cost more per step — 1024 is for slow, wide landscapes.</div>
+    </div>
+  </div>
+</div>
+
+<div id="modal"><div class="card">
+  <h2>How Lenia works</h2>
+  <p style="color:var(--dimmer)">Conway's Life with the discreteness taken out — of space, of time, and of state.</p>
+  <h4>1 · State is continuous</h4>
+  <p>Every cell holds a real number <code>A ∈ [0,1]</code> instead of dead/alive. The world is a torus: everything wraps.</p>
+  <h4>2 · The neighbourhood becomes a kernel</h4>
+  <p>Life counts 8 neighbours. Lenia takes a weighted average over a disc of radius <code>R</code> using a ring-shaped kernel that sums to 1, where weight depends only on distance <code>r/R</code>:</p>
+  <div class="eq">K(r) = β⌊rB⌋ · core((rB) mod 1),&nbsp;&nbsp; core(u) = exp(4 − 1/(u(1−u)))</div>
+  <p>One ring gives a single fuzzy annulus; <code>β = [1, ⅔, ⅓]</code> gives three rings of decreasing weight. The ring recipe decides which species you get.</p>
+  <h4>3 · Potential</h4>
+  <p>Convolve world with kernel. Each cell learns how crowded its neighbourhood is at the scale the kernel cares about:</p>
+  <div class="eq">U = K ∗ A</div>
+  <h4>4 · Growth</h4>
+  <p>"Born on 3, survive on 2–3" becomes a smooth bell centred at <code>μ</code> with width <code>σ</code>, mapping potential to change in <code>[−1, +1]</code>:</p>
+  <div class="eq">G(u) = 2·exp(−(u−μ)² / 2σ²) − 1</div>
+  <p>Just right → grow. Too sparse or too crowded → shrink. <code>σ</code> is the tolerance and the most sensitive knob in the system.</p>
+  <h4>5 · Time is continuous too</h4>
+  <div class="eq">A ← clip(A + (1/T)·G(K ∗ A), 0, 1)</div>
+  <p>At <code>T = 10</code> a cell needs ten steps to cross its full range, so structures deform instead of flickering.</p>
+  <h4>Why anything interesting happens</h4>
+  <p>The kernel makes a cell want a specific amount of mass at a specific distance. A ring of the right thickness feeds its inner edge while starving its outer edge, so it advances; break the symmetry and it turns. What emerges are <em>solitons</em> — self-repairing, self-propelling blobs that survive perturbation, collide, split and orbit. Nobody programmed them; they are the only stable solutions.</p>
+  <h4>Conway is in here</h4>
+  <p>A 3×3 kernel with the centre at half weight, hard step growth, <code>T = 1</code> and a binary start reproduces the Game of Life exactly, cell for cell. That's the <em>Conway limit</em> preset.</p>
+  <h4>Scale</h4>
+  <p>R and T scale together: doubling both gives roughly the same creature at twice the size, more finely resolved. That's how the small discovered rules were grown to fit a 256 world.</p>
+  <h4>Keys</h4>
+  <p><kbd>space</kbd> play · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>R</kbd> reset · <kbd>S</kbd> soup · <kbd>C</kbd> clear · <kbd>M</kbd> mutate · <kbd>F</kbd> find · <kbd>shift</kbd>+<kbd>R</kbd> randomize · <kbd>P</kbd> panel</p>
+  <p style="margin-top:16px"><button class="btn" id="mClose">close</button></p>
+</div></div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   ENGINE — runs inside a Web Worker (or inline if workers are unavailable).
+   Everything below lives in one function so it can be stringified.
+   ========================================================================== */
+function EngineBody(self){
+"use strict";
+function bitrev(n){const b=new Uint32Array(n);let j=0;for(let i=1;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;b[i]=j;}return b;}
+class RowFFT{
+  constructor(n){this.n=n;this.rev=bitrev(n);
+    this.c=new Float32Array(n/2);this.s=new Float32Array(n/2);
+    for(let i=0;i<n/2;i++){this.c[i]=Math.cos(-2*Math.PI*i/n);this.s[i]=Math.sin(-2*Math.PI*i/n);}}
+  rows(re,im,r0,r1,inv){
+    const n=this.n,rev=this.rev,C=this.c,S=this.s;
+    for(let off=r0*n;off<r1*n;off+=n){
+      for(let i=0;i<n;i++){const j=rev[i];if(j>i){const a=off+i,b=off+j;
+        let t=re[a];re[a]=re[b];re[b]=t;t=im[a];im[a]=im[b];im[b]=t;}}
+      for(let len=2;len<=n;len<<=1){
+        const half=len>>1,step=n/len;
+        for(let i=0;i<n;i+=len){
+          let a=off+i,b=a+half;
+          for(let k=0,tw=0;k<half;k++,tw+=step,a++,b++){
+            const wr=C[tw],wi=inv?-S[tw]:S[tw];
+            const br=re[b],bi=im[b];
+            const xr=br*wr-bi*wi,xi=br*wi+bi*wr;
+            re[b]=re[a]-xr;im[b]=im[a]-xi;re[a]+=xr;im[a]+=xi;
+          }}}}
+  }
+}
+/* real-input 2D spectrum: n/2 packed row transforms + (n/2+1) column transforms */
+class RSpec{
+  constructor(n){this.n=n;this.h=n/2;this.f=new RowFFT(n);
+    this.pr=new Float32Array(this.h*n);this.pi=new Float32Array(this.h*n);
+    this.re=new Float32Array(n*n);this.im=new Float32Array(n*n);}
+  _t(a){const n=this.n;for(let y=0;y<n;y++){let i=y*n+y+1,j=(y+1)*n+y;
+    for(let x=y+1;x<n;x++,i++,j+=n){const t=a[i];a[i]=a[j];a[j]=t;}}}
+  forward(A){
+    const n=this.n,h=this.h,pr=this.pr,pi=this.pi,re=this.re,im=this.im;
+    for(let j=0;j<h;j++){const o=j*n,a=2*j*n,b=a+n;
+      for(let x=0;x<n;x++){pr[o+x]=A[a+x];pi[o+x]=A[b+x];}}
+    this.f.rows(pr,pi,0,h,false);
+    for(let j=0;j<h;j++){const o=j*n,ra=2*j*n,rb=ra+n;
+      for(let k=0;k<n;k++){
+        const k2=k===0?0:n-k;
+        const zr=pr[o+k],zi=pi[o+k],wr=pr[o+k2],wi=pi[o+k2];
+        re[ra+k]=0.5*(zr+wr);im[ra+k]=0.5*(zi-wi);
+        re[rb+k]=0.5*(zi+wi);im[rb+k]=0.5*(wr-zr);
+      }}
+    this._t(re);this._t(im);
+    this.f.rows(re,im,0,h+1,false);
+  }
+  inverse(out){
+    const n=this.n,h=this.h,pr=this.pr,pi=this.pi,re=this.re,im=this.im;
+    this.f.rows(re,im,0,h+1,true);
+    this._t(re);this._t(im);
+    for(let j=0;j<h;j++){const o=j*n,ra=2*j*n,rb=ra+n;
+      for(let k=0;k<n;k++){
+        let ar,ai,br,bi;
+        if(k<=h){ar=re[ra+k];ai=im[ra+k];br=re[rb+k];bi=im[rb+k];}
+        else{const k2=n-k;ar=re[ra+k2];ai=-im[ra+k2];br=re[rb+k2];bi=-im[rb+k2];}
+        pr[o+k]=ar-bi;pi[o+k]=ai+br;
+      }}
+    this.f.rows(pr,pi,0,h,true);
+    const s=1/(n*n);
+    for(let j=0;j<h;j++){const o=j*n,a=2*j*n,b=a+n;
+      for(let x=0;x<n;x++){out[a+x]=pr[o+x]*s;out[b+x]=pi[o+x]*s;}}
+  }
+  kernelSpectrum(K){this.forward(K);
+    const ks=new Float32Array((this.h+1)*this.n);
+    for(let i=0;i<ks.length;i++)ks[i]=this.re[i];
+    return ks;}
+  multiply(ks){const m=(this.h+1)*this.n,re=this.re,im=this.im;
+    for(let i=0;i<m;i++){const k=ks[i];re[i]*=k;im[i]*=k;}}
+}
+const CORE={
+  exponential:u=>Math.exp(4-1/(u*(1-u))),
+  polynomial :u=>Math.pow(4*u*(1-u),4),
+  rectangular:u=>(u>=0.25&&u<=0.75)?1:0};
+const GROWTH={
+  gaussian  :(u,m,s)=>2*Math.exp(-((u-m)*(u-m))/(2*s*s))-1,
+  polynomial:(u,m,s)=>{const q=1-((u-m)*(u-m))/(9*s*s);return q<=0?-1:2*Math.pow(q,4)-1;},
+  step      :(u,m,s)=>Math.abs(u-m)<=s?1:-1};
+function buildKernel(n,R,beta,coreName){
+  const K=new Float32Array(n*n),core=CORE[coreName]||CORE.exponential,B=beta.length;
+  let sum=0;
+  for(let y=0;y<n;y++){const dy=y>n/2?y-n:y;
+    for(let x=0;x<n;x++){const dx=x>n/2?x-n:x;
+      const r=Math.sqrt(dx*dx+dy*dy)/R;if(r>=1)continue;
+      const br=r*B;let i=br|0;if(i>=B)i=B-1;
+      const u=br-i;if(u<=0||u>=1)continue;
+      const v=beta[i]*core(u);
+      if(v>0){K[y*n+x]=v;sum+=v;}}}
+  if(sum>0)for(let i=0;i<n*n;i++)K[i]/=sum;
+  return K;
+}
+function buildLifeKernel(n){
+  const K=new Float32Array(n*n),w=1/8.5,at=(x,y)=>((y+n)%n)*n+((x+n)%n);
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)K[at(dx,dy)]=(dx===0&&dy===0)?0.5*w:w;
+  return K;
+}
+class Lenia{
+  constructor(n){this.n=n;const N=n*n;
+    this.A=new Float32Array(N);this.U=new Float32Array(N);
+    this.sp=new RSpec(n);this.ks=null;this.gen=0;}
+  setKernel(K){this.ks=this.sp.kernelSpectrum(K);}
+  applyParams(p){this.setKernel(p.life?buildLifeKernel(this.n):buildKernel(this.n,p.R,p.beta,p.core));}
+  step(p){
+    const N=this.n*this.n,A=this.A,U=this.U,dt=1/p.T,m=p.mu,s=p.sigma;
+    this.sp.forward(A);this.sp.multiply(this.ks);this.sp.inverse(U);
+    if(p.growth==='gaussian'){
+      const c=-1/(2*s*s);
+      for(let i=0;i<N;i++){const d=U[i]-m;const v=A[i]+dt*(2*Math.exp(c*d*d)-1);
+        A[i]=v<0?0:(v>1?1:v);}
+    }else{
+      const g=GROWTH[p.growth]||GROWTH.gaussian;
+      for(let i=0;i<N;i++){const v=A[i]+dt*g(U[i],m,s);A[i]=v<0?0:(v>1?1:v);}
+    }
+    this.gen++;
+  }
+}
+const ORBIUM=[[0,0,0,0,0,0,.1,.14,.1,0,0,.03,.03,0,0,.3,0,0,0,0],
+[0,0,0,0,0,.08,.24,.3,.3,.18,.14,.15,.16,.15,.09,.2,0,0,0,0],
+[0,0,0,0,0,.15,.34,.44,.46,.38,.18,.14,.11,.13,.19,.18,.45,0,0,0],
+[0,0,0,0,.06,.13,.39,.5,.5,.37,.06,0,0,0,.02,.16,.68,0,0,0],
+[0,0,0,.11,.17,.17,.33,.4,.38,.28,.14,0,0,0,0,0,.18,.42,0,0],
+[0,0,.09,.18,.13,.06,.08,.26,.32,.32,.27,0,0,0,0,0,0,.82,0,0],
+[.27,0,.16,.12,0,0,0,.25,.38,.44,.45,.34,0,0,0,0,0,.22,.17,0],
+[0,.07,.2,.02,0,0,0,.31,.48,.57,.6,.57,0,0,0,0,0,0,.49,0],
+[0,.59,.19,0,0,0,0,.2,.57,.69,.76,.76,.49,0,0,0,0,0,.36,0],
+[0,.58,.19,0,0,0,0,0,.67,.83,.9,.92,.87,.12,0,0,0,0,.22,.07],
+[0,0,.46,0,0,0,0,0,.7,.93,1,1,1,.61,0,0,0,0,.18,.11],
+[0,0,.82,0,0,0,0,0,.47,1,1,.98,1,.96,.27,0,0,0,.19,.1],
+[0,0,.46,0,0,0,0,0,.25,1,1,.84,.92,.97,.54,.14,.04,.1,.21,.05],
+[0,0,0,.4,0,0,0,0,.09,.8,1,.82,.8,.85,.63,.31,.18,.19,.2,.01],
+[0,0,0,.36,.1,0,0,0,.05,.54,.86,.79,.74,.72,.6,.39,.28,.24,.13,0],
+[0,0,0,.01,.3,.07,0,0,.08,.36,.64,.7,.64,.6,.51,.39,.29,.19,.04,0],
+[0,0,0,0,.1,.24,.14,.1,.15,.29,.45,.53,.52,.46,.4,.31,.21,.08,0,0],
+[0,0,0,0,0,.08,.21,.21,.22,.29,.36,.39,.37,.33,.26,.18,.09,0,0,0],
+[0,0,0,0,0,0,.03,.13,.19,.22,.24,.24,.23,.18,.13,.05,0,0,0,0],
+[0,0,0,0,0,0,0,0,.02,.06,.08,.09,.07,.05,.01,0,0,0,0,0]];
+
+/* ---------- seeding ---------- */
+function seedSoup(A,n,R,mode){
+  A.fill(0);
+  const cell=Math.max(1,Math.round(R/2));
+  const patch=(ox,oy,span)=>{
+    const lo=Math.ceil(span/cell)+1,g=new Float32Array(lo*lo);
+    for(let i=0;i<g.length;i++)g[i]=Math.random()<0.5?0:Math.random();
+    for(let y=0;y<span;y++)for(let x=0;x<span;x++)
+      A[((oy+y)%n)*n+((ox+x)%n)]=g[((y/cell)|0)*lo+((x/cell)|0)];
+  };
+  if(mode===1){
+    const k=4+((Math.random()*5)|0);
+    for(let b=0;b<k;b++){const span=Math.min(n,Math.round(R*3));
+      patch((Math.random()*n)|0,(Math.random()*n)|0,span);}
+  }else{
+    const span=Math.min(n,Math.round(R*8));patch(((n-span)/2)|0,((n-span)/2)|0,span);
+  }
+}
+function seedBinary(A,n){
+  A.fill(0);const span=Math.round(n*0.55),o=((n-span)/2)|0;
+  for(let y=0;y<span;y++)for(let x=0;x<span;x++)A[(o+y)*n+(o+x)]=Math.random()<0.28?1:0;
+}
+function seedOrbium(A,n,R){
+  A.fill(0);const h=ORBIUM.length,w=ORBIUM[0].length,sc=Math.max(1,Math.round(R/13));
+  const oy=((n-h*sc)/2)|0,ox=((n-w*sc)/2)|0;
+  for(let y=0;y<h*sc;y++)for(let x=0;x<w*sc;x++)
+    A[((oy+y+n)%n)*n+((ox+x+n)%n)]=ORBIUM[(y/sc)|0][(x/sc)|0];
+}
+
+/* ---------- morphology + classification (used by the hunter) ---------- */
+function morph(A,n,th){
+  const m=new Uint8Array(n*n);let alive=0,per=0;
+  for(let i=0;i<n*n;i++)if(A[i]>th){m[i]=1;alive++;}
+  if(!alive)return{blobs:0,mean:0,per:1,alive:0,occ:0};
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    if(!m[y*n+x])continue;
+    if(!m[((y+1)%n)*n+x]||!m[((y-1+n)%n)*n+x]||!m[y*n+(x+1)%n]||!m[y*n+(x-1+n)%n])per++;}
+  const lab=new Int32Array(n*n).fill(-1),st=new Int32Array(n*n);
+  const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1];
+  let blobs=0,big=0;
+  for(let s=0;s<n*n;s++){
+    if(!m[s]||lab[s]>=0)continue;
+    let sp=0;st[sp++]=s;lab[s]=blobs;let sz=0;
+    while(sp){const c=st[--sp];sz++;const cy=(c/n)|0,cx=c%n;
+      for(let d=0;d<8;d++){const q=((cy+DY[d]+n)%n)*n+((cx+DX[d]+n)%n);
+        if(m[q]&&lab[q]<0){lab[q]=blobs;st[sp++]=q;}}}
+    if(sz>=8)big++;
+    blobs++;
+  }
+  const B=16,bs=Math.max(1,(n/B)|0);let occ=0;
+  for(let by=0;by<B;by++)for(let bx=0;bx<B;bx++){
+    let s=0;
+    for(let y=0;y<bs;y+=2)for(let x=0;x<bs;x+=2)s+=A[((by*bs+y)%n)*n+((bx*bs+x)%n)];
+    if(s>0.5)occ++;}
+  return{blobs:big||blobs,mean:alive/Math.max(1,big||blobs),per:per/alive,alive,occ:occ/(B*B)};
+}
+function classify(s,R){
+  if(!s)return null;
+  const{frac,churn,blobs,mean,per,occ}=s;
+  const tau=1/per,area=Math.PI*R*R,rel=churn/Math.max(frac,1e-6);
+  if(churn>0.05&&frac>0.05)return'chaos';
+  if(blobs>=14&&mean<2.2*area&&frac<0.2)return'spores';
+  if(tau<0.45*R&&frac>0.01&&frac<0.32)return'worms';
+  if(occ<0.55&&frac<0.08&&rel>0.04)return'solitons';
+  if(frac>=0.05&&frac<0.4)return'colony';
+  if(frac<0.08)return'solitons';
+  return'other';
+}
+function randomParams(){
+  const R=5+Math.floor(Math.random()*10);
+  const mu=0.05+Math.random()*0.4;
+  const sigma=mu*(0.04+Math.random()*0.36);
+  const rings=1+Math.floor(Math.random()*4);
+  const beta=[1];for(let i=1;i<rings;i++)beta.push(Math.round(Math.random()*100)/100);
+  const T=4+Math.floor(Math.random()*20);
+  const core=['exponential','exponential','polynomial','rectangular'][Math.floor(Math.random()*4)];
+  const growth=Math.random()<0.8?'gaussian':'polynomial';
+  return{R,T,mu:+mu.toFixed(4),sigma:+sigma.toFixed(5),beta,core,growth,life:false,seed:'soup'};
+}
+
+/* ---------- engine state ---------- */
+let n=256,world=new Lenia(n),P=null,running=false,speed=60;
+let acc=0,last=now(),hist=[],histMax=40,spare=null,dirty=true;
+let probe=null,search=null;
+function now(){return (typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();}
+function capHist(){histMax=n>=1024?6:n>=512?14:n>=256?40:80;while(hist.length>histMax)hist.shift();}
+function pushHist(){hist.push(Float32Array.from(world.A));capHist();}
+
+function frame(force){
+  if(!spare||(!dirty&&!force))return;
+  const A=spare;A.set(world.A);
+  const H=new Float32Array(96),U=world.U,N=n*n;
+  const stride=N>262144?4:1;
+  for(let i=0;i<N;i+=stride){const u=U[i];if(u>0){const b=(u*96)|0;if(b<96)H[b]++;}}
+  spare=null;dirty=false;
+  self.postMessage({t:'f',A:A.buffer,H:H.buffer,gen:world.gen,n},[A.buffer,H.buffer]);
+}
+function doSeed(kind){
+  if(kind==='clear')world.A.fill(0);
+  else if(kind==='binary')seedBinary(world.A,n);
+  else if(kind==='orbium')seedOrbium(world.A,n,P?P.R:13);
+  else seedSoup(world.A,n,P?(P.life?6:P.R):13,kind==='scatter'?1:0);
+  world.gen=0;hist=[];dirty=true;
+}
+
+/* ---------- the hunter ---------- */
+function evaluate(p,mode){
+  const pn=128;
+  if(!probe||probe.n!==pn)probe=new Lenia(pn);
+  probe.applyParams(p);
+  seedSoup(probe.A,pn,p.R,0);
+  const N=pn*pn;
+  const mass=()=>{let m=0;for(let i=0;i<N;i++)m+=probe.A[i];return m/N;};
+  for(let s=0;s<50;s++)probe.step(p);
+  let m=mass();if(m<0.002||m>0.45)return null;
+  for(let s=0;s<100;s++)probe.step(p);
+  m=mass();if(m<0.004||m>0.42)return null;
+  for(let s=0;s<100;s++)probe.step(p);
+  const snap=Float32Array.from(probe.A);
+  for(let s=0;s<40;s++)probe.step(p);
+  let frac=0,churn=0;
+  for(let i=0;i<N;i++){frac+=probe.A[i];churn+=Math.abs(probe.A[i]-snap[i]);}
+  frac/=N;churn/=N;
+  if(frac<0.004||frac>0.4)return null;
+  const mo=morph(probe.A,pn,0.35);
+  if(!mo.blobs)return null;
+  const s={frac,churn,...mo};
+  const cls=classify(s,p.R);
+  if(!cls||cls==='other')return null;
+  if(mode!=='any'&&cls!==mode)return null;
+  return{s,cls};
+}
+function searchTick(){
+  if(!search)return;
+  search.tries++;
+  const p=randomParams();
+  let r=null;
+  try{r=evaluate(p,search.mode);}catch(e){r=null;}
+  if(r){
+    const q={...p,R:p.R*2,T:p.T*2,name:r.cls};      // grow to fit the display world
+    search=null;
+    self.postMessage({t:'found',p:q,cls:r.cls,stats:r.s});
+    return;
+  }
+  if(search.tries>=search.max){self.postMessage({t:'none',tries:search.tries});search=null;return;}
+  self.postMessage({t:'s',tries:search.tries});
+  setTimeout(searchTick,0);
+}
+
+/* ---------- main loop ---------- */
+function tick(){
+  const t=now(),dt=t-last;last=t;
+  if(running&&P&&!search){
+    acc+=dt/1000*speed;
+    let k=acc|0;acc-=k;if(acc>3)acc=3;
+    if(k>0){
+      const budget=t+22;let done=0;
+      while(done<k&&now()<budget){world.step(P);done++;}
+      if(done)dirty=true;
+    }
+  }
+  frame(false);
+  setTimeout(tick,0);
+}
+self.onmessage=function(e){
+  const d=e.data;
+  switch(d.c){
+    case 'init':
+      n=d.n;world=new Lenia(n);capHist();hist=[];
+      spare=new Float32Array(n*n);dirty=true;
+      if(P)world.applyParams(P);
+      self.postMessage({t:'ready',n});
+      break;
+    case 'p':{
+      const prev=P;P=d.P;
+      if(d.kernel||!prev)world.applyParams(P);
+      dirty=true;break;}
+    case 'seed':doSeed(d.kind);break;
+    case 'run':running=d.v;acc=0;last=now();break;
+    case 'speed':speed=d.v;break;
+    case 'step':
+      if(!P)break;
+      if(d.k>0){pushHist();world.step(P);}
+      else if(hist.length){world.A.set(hist.pop());world.gen=Math.max(0,world.gen-1);}
+      dirty=true;break;
+    case 'paint':{
+      const A=world.A,br=d.r,hard=d.hard;
+      for(let dy=-br;dy<=br;dy++)for(let dx=-br;dx<=br;dx++){
+        const dist=Math.sqrt(dx*dx+dy*dy);if(dist>br)continue;
+        const i=(((d.y+dy)%n+n)%n)*n+(((d.x+dx)%n+n)%n);
+        const f=hard?1:Math.exp(-(dist*dist)/(2*(br/2.2)*(br/2.2)));
+        A[i]=d.erase?Math.max(0,A[i]-f):Math.min(1,Math.max(A[i],f*(hard?1:0.92)));
+      }
+      dirty=true;break;}
+    case 'ret':{const b=new Float32Array(d.buf);if(b.length===n*n)spare=b;break;}
+    case 'find':search={mode:d.mode,tries:0,max:d.max||90};running=false;setTimeout(searchTick,0);break;
+    case 'stopfind':search=null;break;
+  }
+};
+tick();
+}
+
+/* ==========================================================================
+   UI — main thread
+   ========================================================================== */
+const $=id=>document.getElementById(id);
+const CORE_UI={
+  exponential:u=>Math.exp(4-1/(u*(1-u))),
+  polynomial :u=>Math.pow(4*u*(1-u),4),
+  rectangular:u=>(u>=0.25&&u<=0.75)?1:0};
+const GROWTH_UI={
+  gaussian  :(u,m,s)=>2*Math.exp(-((u-m)*(u-m))/(2*s*s))-1,
+  polynomial:(u,m,s)=>{const q=1-((u-m)*(u-m))/(9*s*s);return q<=0?-1:2*Math.pow(q,4)-1;},
+  step      :(u,m,s)=>Math.abs(u-m)<=s?1:-1};
+
+const PRESETS=[
+ {g:'Creatures',name:'Orbium',R:13,T:10,mu:0.15,sigma:0.017,beta:[1],core:'exponential',growth:'gaussian',seed:'orbium',
+  note:'The classic Lenia glider — a single soliton that holds its shape and swims forever. Move σ by 0.001 and it dies.'},
+ {g:'Creatures',name:'Critters',R:8,T:10,mu:0.363,sigma:0.05166,beta:[1,0.46,0.75,0.64],core:'exponential',growth:'gaussian',seed:'scatter',
+  note:'Four-ring kernel. Small independent creatures that drift, bump and survive collisions. Paint a few extra and watch them interact.'},
+ {g:'Creatures',name:'Amoeba',R:16,T:20,mu:0.363,sigma:0.05166,beta:[1,0.46,0.75,0.64],core:'exponential',growth:'gaussian',seed:'soup',
+  note:'The same rule as Critters at twice the scale — instead of many small ones you get a single giant organism with a bright membrane and a churning interior.'},
+ {g:'Creatures',name:'Worms',R:8,T:18,mu:0.3703,sigma:0.06761,beta:[1,0.94],core:'rectangular',growth:'gaussian',seed:'scatter',
+  note:'Two hard rings. Grows elongated bodies that stretch, crawl and snap into segments.'},
+ {g:'Textures',name:'Labyrinth',R:26,T:18,mu:0.2661,sigma:0.02693,beta:[1,0.59],core:'exponential',growth:'polynomial',seed:'soup',
+  note:'A maze of thin diagonal filaments that keeps rewiring itself. Large radius, so give it a 512 world.'},
+ {g:'Textures',name:'Spores',R:8,T:38,mu:0.0782,sigma:0.00894,beta:[1,0.44],core:'rectangular',growth:'gaussian',seed:'soup',
+  note:'A cloud of tiny particles that never merge. Very low μ — each spore only needs a whisper of neighbourhood.'},
+ {g:'Textures',name:'Plankton',R:8,T:48,mu:0.1966,sigma:0.02636,beta:[1,0.82,0.25],core:'polynomial',growth:'gaussian',seed:'soup',
+  note:'A drifting mesh of specks, slowly reorganising. High T, so raise the step rate.'},
+ {g:'Textures',name:'Membrane',R:8,T:38,mu:0.4161,sigma:0.11784,beta:[1,0.76,0.76,0.59],core:'exponential',growth:'gaussian',seed:'soup',
+  note:'Four rings and a very wide growth window. Builds a walled cell with visible internal structure.'},
+ {g:'Textures',name:'Tissue',R:12,T:40,mu:0.4149,sigma:0.0968,beta:[1,0.26],core:'exponential',growth:'polynomial',seed:'soup',
+  note:'Grows outward as a woven sheet with a bright rim — closest thing here to a colony of cells.'},
+ {g:'Textures',name:'Cell rings',R:8,T:13,mu:0.101,sigma:0.0195,beta:[1,0.37,0.5],core:'rectangular',growth:'gaussian',seed:'soup',
+  note:'Ring-shaped organisms with hollow centres, packed together like tissue under a slide.'},
+ {g:'Textures',name:'Coral',R:19,T:10,mu:0.16,sigma:0.033,beta:[1],core:'polynomial',growth:'gaussian',seed:'soup',
+  note:'Big soft kernel, low churn. Freezes into a thick reef whose edges creep for a very long time.'},
+ {g:'Textures',name:'Hydrogeminium',R:18,T:10,mu:0.26,sigma:0.036,beta:[1,0.667,0.333],core:'exponential',growth:'gaussian',seed:'soup',
+  note:'Chan\u2019s three-ring classic. A branching colony that keeps budding new lobes and never settles.'},
+ {g:'Chaos',name:'Bubbles',R:7,T:14,mu:0.263,sigma:0.059,beta:[1,0.11],core:'polynomial',growth:'gaussian',seed:'soup',
+  note:'Wide growth window — a foam of round cells that jostle, merge and pop.'},
+ {g:'Chaos',name:'Fissure',R:7,T:6,mu:0.205,sigma:0.024,beta:[1],core:'rectangular',growth:'gaussian',seed:'soup',
+  note:'Hard-edged kernel and coarse time. Violent, boiling, crack-like turbulence.'},
+ {g:'Chaos',name:'Conway limit',R:1,T:1,mu:3/8.5,sigma:0.5/8.5+1e-5,beta:[1],core:'exponential',growth:'step',seed:'binary',life:true,
+  note:'Lenia with every continuity removed: 3×3 kernel, hard step growth, T=1, binary states. This is exactly Conway\u2019s Game of Life.'},
+];
+
+let N=256,P={...PRESETS[0]},presetIdx=0,playing=false,booted=false,alloced=false;
+let sps=0,frames=0,fpsT=performance.now(),lastGen=0;
+let engine=null,inline=false,searching=false;
+const view=$('view'),vctx=view.getContext('2d');
+let img=null,pix=null,LUT=new Uint32Array(256),lastHist=new Float32Array(96);
+
+/* ---------- colour ---------- */
+const MAPS={
+  spectrum:[[0,8,10,14],[.14,38,54,140],[.30,34,150,220],[.46,34,211,238],[.60,47,224,138],
+            [.74,255,199,61],[.87,255,59,82],[.95,196,107,255],[1,255,240,250]],
+  ember:[[0,8,8,12],[.22,90,20,120],[.44,220,50,90],[.66,255,140,50],[.85,255,220,120],[1,255,255,245]],
+  bio:[[0,4,6,10],[.25,10,58,60],[.5,32,140,110],[.72,150,215,90],[.9,250,214,120],[1,255,255,244]],
+  plasma:[[0,6,4,16],[.25,60,16,110],[.5,150,30,140],[.72,232,86,88],[.9,250,180,60],[1,255,247,220]],
+  rgb:[[0,3,4,8],[.28,40,60,190],[.55,60,190,90],[.8,225,70,60],[1,255,248,232]],
+  ash:[[0,6,8,10],[.5,90,102,116],[.8,190,200,212],[1,255,255,255]]};
+function buildLUT(name){
+  const s=MAPS[name]||MAPS.spectrum;
+  for(let i=0;i<256;i++){
+    const t=i/255;let a=s[0],b=s[s.length-1];
+    for(let k=0;k<s.length-1;k++)if(t>=s[k][0]&&t<=s[k+1][0]){a=s[k];b=s[k+1];break;}
+    const f=(b[0]-a[0])?(t-a[0])/(b[0]-a[0]):0;
+    LUT[i]=(255<<24)|(Math.round(a[3]+(b[3]-a[3])*f)<<16)|(Math.round(a[2]+(b[2]-a[2])*f)<<8)|Math.round(a[1]+(b[1]-a[1])*f);
+  }
+}
+function allocCanvas(){
+  view.width=N;view.height=N;
+  const st=$('stage');
+  const s=Math.min(st.clientWidth-32,st.clientHeight-32);
+  view.style.width=view.style.height=Math.max(160,s)+'px';
+  img=vctx.createImageData(N,N);pix=new Uint32Array(img.data.buffer);
+  vctx.imageSmoothingEnabled=false;
+  const kp=$('kprof'),gp=$('gplot');
+  if(kp.clientWidth>40)kp.width=kp.clientWidth;
+  if(gp.clientWidth>40)gp.width=gp.clientWidth;
+  if(alloced){drawKernel();drawGrowth();}
+  alloced=true;
+}
+function paintFrame(A){
+  const n=N*N;
+  for(let i=0;i<n;i++){const v=A[i]*255;pix[i]=LUT[v<0?0:(v>255?255:v|0)];}
+  vctx.putImageData(img,0,0);
+}
+
+/* ---------- engine bridge ---------- */
+function send(m,tr){engine.post(m,tr);}
+function startEngine(){
+  const src='('+EngineBody.toString()+')(self);';
+  let w=null;
+  try{
+    if(typeof Worker!=='undefined'){
+      const url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
+      w=new Worker(url);
+      w.onerror=()=>{};
+    }
+  }catch(e){w=null;}
+  if(w){
+    engine={post:(m,tr)=>w.postMessage(m,tr||[])};
+    w.onmessage=e=>fromEngine(e.data);
+    setTimeout(()=>{                      // blob workers are blocked on some file:// setups
+      if(booted)return;
+      try{w.terminate();}catch(e){}
+      goInline();send({c:'init',n:N});pushParams(true);reseed();
+      if(playing)send({c:'run',v:true});
+      send({c:'speed',v:+$('speed').value});
+    },1500);
+  }else{
+    goInline();
+  }
+}
+function goInline(){
+  inline=true;
+  const shim={postMessage:m=>fromEngine(m),onmessage:null};
+  EngineBody(shim);
+  engine={post:m=>shim.onmessage({data:m})};
+}
+function fromEngine(d){
+  if(d.t==='f'){
+    const A=new Float32Array(d.A);
+    if(d.n===N){paintFrame(A);lastHist=new Float32Array(d.H);}
+    send({c:'ret',buf:A.buffer},[A.buffer]);
+    frames++;
+    const gen=d.gen,t=performance.now();
+    if(t-fpsT>500){sps=Math.round((gen-lastGen)/((t-fpsT)/1000));lastGen=gen;fpsT=t;
+      updateHUD(gen);if(playing)drawGrowth();}
+    else if(gen<lastGen)lastGen=gen;
+    curGen=gen;
+  }
+  else if(d.t==='s'){$('findCount').textContent=d.tries+' rejected';}
+  else if(d.t==='found'){
+    searching=false;$('bFind').textContent='find life';$('findCount').textContent='';
+    const st=d.stats;
+    applyParams({...d.p,seed:'soup'},
+      'Found a '+d.cls+': fill '+(st.frac*100).toFixed(1)+'%, '+st.blobs+' bodies, churn '+st.churn.toFixed(4)+
+      '. R and T were doubled to fit this world. Mutate to explore around it.');
+    reseed();setPlay(true);toast('found — '+d.cls);
+  }
+  else if(d.t==='none'){
+    searching=false;$('bFind').textContent='find life';$('findCount').textContent='';
+    $('findNote').textContent='Nothing matched in '+d.tries+' candidates. Rule-space is mostly desert — press again, or widen the target.';
+    toast('no match — press again');
+  }
+  else if(d.t==='ready'){booted=true;}
+}
+let curGen=0;
+
+/* ---------- plots ---------- */
+function drawKernel(){
+  const c=$('kimg'),x=c.getContext('2d'),S=88;
+  const id=x.createImageData(S,S),d=new Uint32Array(id.data.buffer);
+  const R=P.life?1.6:P.R,K=[];let mx=0;
+  for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+    const dx=(i-S/2)/(S/2)*R*1.15,dy=(j-S/2)/(S/2)*R*1.15;
+    let v=0;
+    if(P.life){if(Math.abs(Math.round(dx))<=1&&Math.abs(Math.round(dy))<=1)
+      v=(Math.round(dx)===0&&Math.round(dy)===0)?0.5:1;}
+    else{const r=Math.sqrt(dx*dx+dy*dy)/P.R;
+      if(r<1){const B=P.beta.length,br=r*B;let k=br|0;if(k>=B)k=B-1;
+        const u=br-k;if(u>0&&u<1)v=P.beta[k]*(CORE_UI[P.core]||CORE_UI.exponential)(u);}}
+    K.push(v);if(v>mx)mx=v;
+  }
+  for(let i=0;i<S*S;i++)d[i]=LUT[Math.round((mx>0?K[i]/mx:0)*255)];
+  x.putImageData(id,0,0);
+  const p=$('kprof'),g=p.getContext('2d'),W=p.width,H=p.height;
+  g.clearRect(0,0,W,H);
+  g.strokeStyle='#242c37';g.beginPath();g.moveTo(0,H-8);g.lineTo(W,H-8);g.stroke();
+  g.strokeStyle='#22d3ee';g.lineWidth=1.5;g.beginPath();
+  for(let i=0;i<=W;i++){
+    const r=i/W;let v=0;
+    if(P.life)v=r<0.55?1:0;
+    else{const B=P.beta.length,br=r*B;let k=br|0;if(k>=B)k=B-1;
+      const u=br-k;if(u>0&&u<1&&r<1)v=P.beta[k]*(CORE_UI[P.core]||CORE_UI.exponential)(u);}
+    const y=H-8-v*(H-18);i?g.lineTo(i,y):g.moveTo(i,y);}
+  g.stroke();
+  g.fillStyle='#5b6779';g.font='9px ui-monospace,monospace';
+  g.fillText('0',2,H-1);g.fillText('r/R',W-20,H-1);
+  $('kinfo').textContent=P.life?'3×3 Moore':'β '+P.beta.map(b=>b.toFixed(2)).join(' / ');
+}
+function drawGrowth(){
+  const c=$('gplot'),g=c.getContext('2d'),W=c.width,H=c.height,pad=6,y0=H/2;
+  g.clearRect(0,0,W,H);
+  const gf=GROWTH_UI[P.growth]||GROWTH_UI.gaussian;
+  const xmax=Math.max(0.35,Math.min(1,P.mu*2.6));
+  let mx=0;for(let i=0;i<96;i++)if(lastHist[i]>mx)mx=lastHist[i];
+  if(mx>0){g.fillStyle='rgba(34,211,238,.18)';
+    for(let i=0;i<96;i++){
+      const u=(i+0.5)/96, px=u/xmax*W;
+      if(px<0||px>W)continue;
+      const h=(lastHist[i]/mx)*(H-2*pad);
+      if(h>0.4)g.fillRect(px-1,H-pad-h,2,h);}}
+  g.fillStyle='rgba(34,211,238,.10)';
+  g.fillRect((P.mu-P.sigma)/xmax*W,pad,Math.max(1,2*P.sigma/xmax*W),H-2*pad);
+  g.strokeStyle='#242c37';g.beginPath();g.moveTo(0,y0);g.lineTo(W,y0);g.stroke();
+  g.strokeStyle='#22d3ee';g.lineWidth=1.6;g.beginPath();
+  for(let i=0;i<=W;i++){const v=gf(i/W*xmax,P.mu,P.sigma);
+    const y=y0-v*(H/2-pad);i?g.lineTo(i,y):g.moveTo(i,y);}
+  g.stroke();
+  const mpx=P.mu/xmax*W;
+  g.strokeStyle='#ffc73d';g.setLineDash([2,3]);g.beginPath();
+  g.moveTo(mpx,pad);g.lineTo(mpx,H-pad);g.stroke();g.setLineDash([]);
+  g.fillStyle='#5b6779';g.font='9px ui-monospace,monospace';
+  g.fillText('U=0',2,y0-3);g.fillText('U='+xmax.toFixed(2),W-46,y0-3);
+  g.fillStyle='#ffc73d';g.fillText('μ',Math.min(W-10,mpx+3),11);
+}
+/* ---------- ui sync ---------- */
+function syncUI(){
+  $('R').value=P.R;$('RV').textContent=P.R;
+  $('mu').value=P.mu;$('muV').textContent=P.mu.toFixed(3);
+  $('sigma').value=P.sigma;$('sigmaV').textContent=P.sigma.toFixed(4);
+  $('T').value=P.T;$('TV').textContent=P.T;
+  $('core').value=P.core;$('growth').value=P.growth;
+  for(let i=0;i<4;i++){
+    const v=P.beta[i];
+    $('rowB'+i).style.display=v===undefined?'none':'flex';
+    if(v!==undefined){$('b'+i).value=v;$('b'+i+'V').textContent=v.toFixed(2);}}
+  document.querySelectorAll('[data-rings]').forEach(el=>
+    el.classList.toggle('on',+el.dataset.rings===P.beta.length));
+  document.querySelectorAll('#presets .chip').forEach((el,i)=>el.classList.toggle('on',i===presetIdx));
+  const dis=!!P.life;
+  ['R','b0','b1','b2','b3','core'].forEach(id=>$(id).disabled=dis);
+}
+function updateHUD(gen){
+  $('hud').innerHTML=
+    'gen <b>'+gen+'</b> · t <b>'+(gen/P.T).toFixed(1)+'</b> · <b>'+sps+'</b> steps/s · '+N+'² '+(inline?'(no worker)':'')+
+    '<br>R '+(P.life?'—':P.R)+' · T '+P.T+' · μ '+P.mu.toFixed(3)+' · σ '+P.sigma.toFixed(4)+
+    ' · β ['+P.beta.map(v=>v.toFixed(2)).join(', ')+'] · '+P.core+'/'+P.growth;
+}
+let toastT=null;
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),1900);}
+function pushParams(kernel){send({c:'p',P:JSON.parse(JSON.stringify(P)),kernel:!!kernel});}
+function applyParams(p,note){
+  P={...p};
+  if(!P.beta)P.beta=[1];
+  presetIdx=PRESETS.findIndex(q=>q.name===p.name&&q.R===p.R);
+  $('presetNote').textContent=note||p.note||'Custom rule.';
+  pushParams(true);syncUI();drawKernel();drawGrowth();
+}
+function reseed(){send({c:'seed',kind:P.seed||'soup'});}
+function setPlay(v){playing=v;$('bPlay').textContent=v?'❚❚':'▶';send({c:'run',v});}
+
+/* ---------- controls ---------- */
+function bindRange(id,fmt,set){
+  const el=$(id);
+  el.addEventListener('input',()=>{const v=+el.value;$(id+'V').textContent=fmt(v);set(v);});
+}
+bindRange('R',v=>v,v=>{P.R=v;pushParams(true);drawKernel();updateHUD(curGen);});
+bindRange('mu',v=>v.toFixed(3),v=>{P.mu=v;pushParams(false);drawGrowth();updateHUD(curGen);});
+bindRange('sigma',v=>v.toFixed(4),v=>{P.sigma=v;pushParams(false);drawGrowth();updateHUD(curGen);});
+bindRange('T',v=>v,v=>{P.T=v;pushParams(false);updateHUD(curGen);});
+bindRange('brush',v=>v,()=>{});
+bindRange('speed',v=>v,v=>send({c:'speed',v}));
+for(let i=0;i<4;i++)bindRange('b'+i,v=>v.toFixed(2),v=>{
+  if(P.beta.length>i){P.beta[i]=v;pushParams(true);drawKernel();updateHUD(curGen);}});
+document.querySelectorAll('[data-rings]').forEach(el=>el.addEventListener('click',()=>{
+  if(P.life){toast('Conway limit uses a fixed 3×3 kernel');return;}
+  const k=+el.dataset.rings,b=[1];
+  for(let i=1;i<k;i++)b.push(P.beta[i]===undefined?0.5:P.beta[i]);
+  P.beta=b;pushParams(true);syncUI();drawKernel();}));
+$('core').addEventListener('change',e=>{P.core=e.target.value;pushParams(true);drawKernel();updateHUD(curGen);});
+$('growth').addEventListener('change',e=>{P.growth=e.target.value;pushParams(false);drawGrowth();updateHUD(curGen);});
+$('cmap').addEventListener('change',e=>{buildLUT(e.target.value);drawKernel();});
+$('size').addEventListener('change',e=>{
+  N=+e.target.value;allocCanvas();send({c:'init',n:N});pushParams(true);reseed();});
+$('bPlay').addEventListener('click',()=>setPlay(!playing));
+$('bFwd').addEventListener('click',()=>send({c:'step',k:1}));
+$('bBack').addEventListener('click',()=>send({c:'step',k:-1}));
+$('bClear').addEventListener('click',()=>send({c:'seed',kind:'clear'}));
+$('bReset').addEventListener('click',reseed);
+$('bRandSeed').addEventListener('click',()=>send({c:'seed',kind:'soup'}));
+$('bMutate').addEventListener('click',mutate);
+$('bRandP').addEventListener('click',()=>{applyParams(randomRule(),'Random point in rule-space. Most of it is barren — that is exactly the point.');reseed();});
+$('bFind').addEventListener('click',()=>{
+  if(searching){send({c:'stopfind'});searching=false;$('bFind').textContent='find life';$('findCount').textContent='';return;}
+  searching=true;setPlay(false);$('bFind').textContent='stop';
+  $('findNote').textContent='Hunting…';
+  send({c:'find',mode:$('findMode').value,max:120});
+});
+$('bCopy').addEventListener('click',()=>{
+  const j=JSON.stringify({R:P.R,T:P.T,mu:+P.mu.toFixed(4),sigma:+P.sigma.toFixed(5),beta:P.beta,core:P.core,growth:P.growth});
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(j).then(()=>toast('params copied'),()=>toast(j));
+  else toast(j);});
+$('bPanel').addEventListener('click',()=>{$('side').classList.toggle('closed');setTimeout(allocCanvas,220);});
+$('bInfo').addEventListener('click',()=>$('modal').classList.add('on'));
+$('mClose').addEventListener('click',()=>$('modal').classList.remove('on'));
+$('modal').addEventListener('click',e=>{if(e.target.id==='modal')$('modal').classList.remove('on');});
+
+function randomRule(){
+  const R=6+Math.floor(Math.random()*18);
+  const mu=0.06+Math.random()*0.38;
+  const sigma=+(mu*(0.05+Math.random()*0.33)).toFixed(5);
+  const rings=1+Math.floor(Math.random()*4);
+  const beta=[1];for(let i=1;i<rings;i++)beta.push(Math.round(Math.random()*100)/100);
+  return{name:'random',R,T:6+Math.floor(Math.random()*24),mu:+mu.toFixed(4),sigma,beta,
+    core:['exponential','exponential','polynomial','rectangular'][Math.floor(Math.random()*4)],
+    growth:Math.random()<0.8?'gaussian':'polynomial',seed:'soup',life:false};
+}
+function mutate(){
+  if(P.life){applyParams({...PRESETS[0]});}
+  const j=(v,a)=>v*(1+(Math.random()*2-1)*a);
+  const p={...P,name:'mutant',life:false,seed:P.seed==='binary'?'soup':P.seed,
+    growth:P.growth==='step'?'gaussian':P.growth,
+    mu:Math.min(0.6,Math.max(0.02,+j(P.mu,0.08).toFixed(4))),
+    sigma:Math.min(0.15,Math.max(0.002,+j(P.sigma,0.12).toFixed(5))),
+    R:Math.min(60,Math.max(2,Math.round(j(P.R,0.12)))),
+    T:Math.min(60,Math.max(1,Math.round(j(P.T,0.15)))),
+    beta:P.beta.map((b,i)=>i===0?1:Math.min(1,Math.max(0,+j(b||0.5,0.22).toFixed(2))))};
+  applyParams(p,'Mutation of the previous rule — μ, σ, R, T and β all nudged. Reset to re-seed, or let it deform in place.');
+  toast('mutated');
+}
+/* ---------- painting ---------- */
+let painting=0;
+function paintAt(ev,erase){
+  const r=view.getBoundingClientRect();
+  const x=Math.floor((ev.clientX-r.left)/r.width*N),y=Math.floor((ev.clientY-r.top)/r.height*N);
+  send({c:'paint',x,y,r:+$('brush').value,erase,hard:!!P.life});
+}
+view.addEventListener('pointerdown',e=>{view.setPointerCapture(e.pointerId);
+  painting=(e.button===2||e.shiftKey)?2:1;paintAt(e,painting===2);e.preventDefault();});
+view.addEventListener('pointermove',e=>{if(painting)paintAt(e,painting===2);});
+view.addEventListener('pointerup',()=>painting=0);
+view.addEventListener('pointercancel',()=>painting=0);
+view.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  const k=e.key.toLowerCase();
+  if(k===' '){e.preventDefault();setPlay(!playing);}
+  else if(k==='arrowright')send({c:'step',k:1});
+  else if(k==='arrowleft')send({c:'step',k:-1});
+  else if(k==='r'&&e.shiftKey){applyParams(randomRule(),'Random point in rule-space.');reseed();}
+  else if(k==='r')reseed();
+  else if(k==='s')send({c:'seed',kind:'soup'});
+  else if(k==='c')send({c:'seed',kind:'clear'});
+  else if(k==='m')mutate();
+  else if(k==='f')$('bFind').click();
+  else if(k==='p'){$('side').classList.toggle('closed');setTimeout(allocCanvas,220);}
+  else if(k==='escape')$('modal').classList.remove('on');
+});
+window.addEventListener('resize',allocCanvas);
+
+/* ---------- boot ---------- */
+(function(){
+  let group='',row=null;
+  PRESETS.forEach((p,i)=>{
+    if(p.g!==group){group=p.g;
+      const h=document.createElement('div');h.className='gl';h.textContent=group;$('presets').appendChild(h);
+      row=document.createElement('div');row.className='grid2';$('presets').appendChild(row);}
+    const el=document.createElement('div');
+    el.className='chip';el.textContent=p.name;el.title=p.note;
+    el.addEventListener('click',()=>{applyParams(p);presetIdx=i;syncUI();reseed();setPlay(true);});
+    row.appendChild(el);
+  });
+  buildLUT('spectrum');
+  allocCanvas();
+  startEngine();
+  send({c:'init',n:N});
+  applyParams(PRESETS[0]);presetIdx=0;syncUI();
+  reseed();updateHUD(0);
+  send({c:'speed',v:+$('speed').value});
+})();
+</script>
+</body>
+</html>

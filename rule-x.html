@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rule X — elementary cellular automata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0e1013; --panel:#15181d; --surface:#1c2027;
+    --line:#282e37; --line-soft:#20252c;
+    --ink:#dfe4ec; --ink-dim:#8d97a8; --ink-faint:#5b6474;
+    --accent:#ffc73d; --rail:284px; --lib:264px;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{height:100%}
+  body{margin:0;background:var(--void);color:var(--ink);
+    font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .app{display:flex;height:100vh;height:100dvh}
+
+  .rail{width:var(--rail);flex:0 0 var(--rail);background:var(--panel);
+    border-right:1px solid var(--line);overflow-y:auto;overscroll-behavior:contain}
+  .brand{padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+  .brand h1{font-family:"Space Grotesk",system-ui,sans-serif;font-weight:700;font-size:20px;
+    letter-spacing:-.02em;margin:0;line-height:1.1}
+  .brand h1 i{font-style:normal;color:var(--accent)}
+  .brand p{margin:6px 0 0;color:var(--ink-faint);font-size:11px;line-height:1.5}
+  .group{border-bottom:1px solid var(--line-soft);padding:14px 18px 16px}
+  .group>h2{margin:0 0 10px;font-size:10px;font-weight:600;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-faint)}
+  .row{display:flex;gap:6px;align-items:center}
+  .row+.row{margin-top:8px}
+  .field{margin-top:10px}
+  .field:first-child{margin-top:0}
+  .field label{display:flex;justify-content:space-between;align-items:baseline;
+    color:var(--ink-dim);font-size:11px;margin-bottom:5px}
+  .field label b{color:var(--ink);font-weight:500}
+  .hint{color:var(--ink-faint);font-size:10.5px;line-height:1.55;margin:10px 0 0}
+
+  button,select,input[type=number]{font:inherit;font-size:12px;color:var(--ink);
+    background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:7px 10px;
+    cursor:pointer;transition:background .12s ease,border-color .12s ease,color .12s ease}
+  button:hover,select:hover{background:#232830;border-color:#3a424f}
+  button:active{transform:translateY(1px)}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  select{width:100%;appearance:none;padding-right:26px;
+    background-image:linear-gradient(45deg,transparent 50%,var(--ink-dim) 50%),
+                     linear-gradient(135deg,var(--ink-dim) 50%,transparent 50%);
+    background-position:calc(100% - 14px) 52%,calc(100% - 9px) 52%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+  input[type=number]{cursor:text;font-variant-numeric:tabular-nums}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .grow{flex:1}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line);border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+    border-radius:50%;background:var(--ink);border:none}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border:none;border-radius:50%;background:var(--ink)}
+  .chk{display:flex;align-items:center;gap:8px;color:var(--ink-dim);font-size:12px;
+    cursor:pointer;user-select:none;padding:2px 0}
+  .chk input{accent-color:var(--accent);width:14px;height:14px;margin:0}
+
+  .stage{flex:1;display:flex;flex-direction:column;min-width:0;
+    background:radial-gradient(120% 90% at 50% 0%,#171b21 0%,var(--void) 70%)}
+  .topbar{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;
+    padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .tgroup{display:flex;gap:6px}
+  .tgroup--mid{justify-self:center}
+  .topbar button{padding:9px 13px}
+  #play{min-width:92px;font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:.04em;font-size:12px}
+  #plus10{font-size:11px}
+  .speed{display:flex;align-items:center;gap:10px;justify-self:end;min-width:0}
+  .speed label{color:var(--ink-faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
+  .speed input[type=range]{flex:1;max-width:170px}
+  .speed b{font-weight:500;font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+  #info{width:28px;height:28px;padding:0;border-radius:50%;font-weight:600;flex:none}
+
+  .ruler{background:var(--panel);border-bottom:1px solid var(--line);
+    padding:13px 16px 15px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .rulenum{display:flex;align-items:center;gap:9px}
+  .rulenum .lab{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
+    writing-mode:vertical-rl;transform:rotate(180deg);line-height:1}
+  #bigNum{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:34px;line-height:1;
+    letter-spacing:-.03em;background:none;border:0;padding:2px 4px;width:112px;color:var(--ink)}
+  #bigNum:focus{outline:none;border-bottom:1px solid var(--accent)}
+  .rulenum .stack{display:flex;flex-direction:column;gap:3px}
+  .rulenum .stack button{padding:1px 7px;font-size:10px;line-height:1.3}
+  #randRule{padding:6px 11px;font-size:11px;align-self:stretch}
+  .boxes{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+  .box{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:6px 6px 5px;cursor:pointer}
+  .box:hover{border-color:#4a5567;background:#232830}
+  .box .nbr{display:flex;gap:2px;margin-bottom:4px}
+  .box .nbr i,.box .out i{width:11px;height:11px;display:block;border-radius:1px}
+  .box .out{display:flex;justify-content:center;padding-top:3px;border-top:1px solid #2b323c}
+  .box em{display:block;text-align:center;font-style:normal;font-size:8px;color:var(--ink-faint);
+    margin-top:3px;letter-spacing:.03em}
+  .on{background:var(--ink)} .off{background:#20252c;box-shadow:inset 0 0 0 1px #2b323c}
+  .box[data-fired=true]{border-color:var(--ink)}
+  .palbox{min-width:132px}
+  .palbox u{display:block;text-decoration:none;font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px}
+
+  .board-wrap{flex:1 1 0;position:relative;display:flex;align-items:flex-start;justify-content:center;
+    padding:14px;min-height:0;overflow:hidden}
+  #board{border:1px solid var(--line);display:block;background:#0b0d10;touch-action:none;
+    box-shadow:0 24px 60px rgba(0,0,0,.55);cursor:crosshair}
+
+  .meter{border-top:1px solid var(--line);background:var(--panel);padding:9px 16px 11px;
+    display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  #dens{flex:1;min-width:120px;height:36px;display:block;border:1px solid var(--line-soft);
+    border-radius:2px;background:#111418}
+  .stats{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+  .stat u{display:block;text-decoration:none;font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-faint)}
+  .stat b{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;
+    font-family:"Space Grotesk",sans-serif}
+  .stat.code b{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;color:var(--accent)}
+  .flag{flex-basis:100%;font-size:10.5px;color:var(--ink-faint);letter-spacing:.06em}
+  .flag.alert{color:#ffcf5c}
+
+  .lib{width:var(--lib);flex:0 0 var(--lib);background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0}
+  .lib.off{display:none}
+  .lib__head{padding:14px 16px 12px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .lib__head h2{margin:0;font-size:10px;font-weight:600;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-faint)}
+  .lib__body{flex:1;overflow-y:auto;padding:12px 16px 20px;min-height:0}
+  .cat{margin:14px 0 8px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+  .cat:first-child{margin-top:0}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .card{padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:3px;
+    cursor:pointer;text-align:left;display:block}
+  .card:hover{border-color:#3d4653}
+  .card canvas{width:100%;height:56px;display:block;image-rendering:pixelated;background:#0b0d10;border-radius:2px}
+  .card em{display:block;font-style:normal;font-size:11px;margin-top:5px;color:var(--ink)}
+  .card small{display:block;font-size:9.5px;color:var(--ink-faint);margin-top:1px;line-height:1.3}
+  .card[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(8,9,12,.78);
+    display:flex;align-items:center;justify-content:center;padding:24px}
+  .modal[hidden]{display:none}
+  .modal__box{max-width:640px;max-height:86vh;overflow-y:auto;background:var(--panel);
+    border:1px solid var(--line);border-radius:5px;padding:26px 28px 22px}
+  .modal__box h3{font-family:"Space Grotesk",sans-serif;font-size:14px;margin:22px 0 8px;color:var(--ink)}
+  .modal__box h3:first-child{margin-top:0}
+  .modal__box p,.modal__box li{color:var(--ink-dim);font-size:12px;line-height:1.65;margin:0 0 8px}
+  .modal__box ul{margin:0 0 10px;padding-left:18px}
+  .modal__box b{color:var(--ink);font-weight:500}
+
+  @media (max-width:980px){
+    body{overflow:auto}
+    .app{flex-direction:column;height:auto;min-height:100dvh}
+    .rail{width:100%;flex:none;border-right:0;border-bottom:1px solid var(--line);order:2}
+    .stage{order:1;height:auto}
+    .board-wrap{min-height:44vh}
+    .lib{width:100%;flex:none;order:3;border-left:0;border-top:1px solid var(--line);max-height:60vh}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail">
+    <div class="brand">
+      <h1>Rule&nbsp;<i>X</i></h1>
+      <p>Eight yes-or-no answers. One line of cells. Everything below it follows.</p>
+    </div>
+
+    <div class="group">
+      <h2>Mode</h2>
+      <div class="field">
+        <label for="mode">Cells each answer looks at</label>
+        <select id="mode">
+          <option value="3" selected>Rule X — 3 cells, 8 answers, 256 rules</option>
+          <option value="4">Rule 2X — 4 cells, 16 answers, 65,536 rules</option>
+        </select>
+      </div>
+      <label class="chk" id="rowStagger" style="margin-top:10px" hidden>
+        <input type="checkbox" id="stagger" checked> Stagger rows so there is a centre
+      </label>
+      <p class="hint" id="modeNote"></p>
+    </div>
+
+    <div class="group">
+      <h2>Seed</h2>
+      <div class="field">
+        <label for="sources">Sources <b><span id="srcOut">1</span></b></label>
+        <input type="range" id="sources" min="0" max="24" value="1">
+      </div>
+      <p class="hint" id="seedNote"></p>
+    </div>
+
+    <div class="group">
+      <h2>Board</h2>
+      <div class="field">
+        <label for="width">Cells across <b><span id="wOut">201</span></b></label>
+        <select id="width">
+          <option value="101">101</option>
+          <option value="201" selected>201</option>
+          <option value="401">401</option>
+          <option value="801">801</option>
+          <option value="0">Fit the window</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cell size <b><span id="zoomOut">3</span> px</b></label>
+        <input type="range" id="zoom" min="1" max="16" value="3">
+      </div>
+      <div class="field">
+        <label for="atEnd">At the bottom of the board</label>
+        <select id="atEnd">
+          <option value="scroll" selected>Keep going — the board scrolls</option>
+          <option value="stop">Stop — fixed height</option>
+        </select>
+      </div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="wrap" checked> Wrap edges (ring)</label>
+      <p class="hint">Scrolling keeps every row — the wheel or a drag takes you back to the top,
+      Home and End jump. Stopping freezes it at exactly one screenful, which is what you want for
+      saving a picture.</p>
+    </div>
+
+    <div class="group">
+      <h2>Display</h2>
+      <div class="field">
+        <label for="colour">Colour cells by</label>
+        <select id="colour">
+          <option value="plain" selected>On or off</option>
+          <option value="rule">Which answer fired</option>
+        </select>
+      </div>
+      <p class="hint" id="colourNote"></p>
+      <div class="field">
+        <label for="cmpMode">Compare with a second rule</label>
+        <select id="cmpMode">
+          <option value="off" selected>Off</option>
+          <option value="overlay">Overlay both</option>
+          <option value="diff">Only where they differ</option>
+        </select>
+      </div>
+      <div class="field" id="rowCmp" hidden>
+        <label for="cmpRule">Second rule <b id="cmpLegend"></b></label>
+        <input type="number" id="cmpRule" min="0" max="255" value="218" style="width:100%">
+        <div class="row" style="margin-top:8px">
+          <button class="grow" id="cmpSwap">Swap the two</button>
+          <button class="grow" id="cmpRand">Random</button>
+        </div>
+      </div>
+      <p class="hint" id="cmpNote"></p>
+      <button style="width:100%;margin-top:10px" id="save">Save diagram as PNG</button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <header class="topbar">
+      <div class="tgroup">
+        <button id="reset" title="Back to the seed row (0)">Reset</button>
+        <button id="fill" title="Run until the board is full">Fill</button>
+      </div>
+      <div class="tgroup tgroup--mid">
+        <button id="prev" title="Previous row (←)">◀◀</button>
+        <button id="play" title="Play / pause (space)">PLAY</button>
+        <button id="next" title="Next row (→)">▶▶</button>
+        <button id="plus10" title="Ten rows at once">+10</button>
+      </div>
+      <div class="speed">
+        <label for="fps">Speed</label>
+        <input type="range" id="fps" min="1" max="120" value="24">
+        <b><span id="fpsOut">24</span> rows/s</b>
+        <button id="lib2" style="padding:7px 10px">Rules</button>
+        <button id="info" title="How this works (i)">?</button>
+      </div>
+    </header>
+
+    <section class="ruler">
+      <div class="rulenum">
+        <span class="lab">Rule</span>
+        <input type="number" id="bigNum" min="0" max="255" value="30">
+        <span class="stack">
+          <button id="ruleUp" title="Next rule (])">▲</button>
+          <button id="ruleDn" title="Previous rule ([)">▼</button>
+        </span>
+        <button id="randRule" title="Random rule (r)">Random</button>
+      </div>
+      <div class="boxes" id="boxes"></div>
+      <div class="palbox">
+        <u>Palette</u>
+        <select id="palette">
+          <option value="amber" selected>Amber</option>
+          <option value="crimson">Crimson</option>
+          <option value="jade">Jade</option>
+          <option value="cyan">Cyan</option>
+          <option value="azure">Azure</option>
+          <option value="violet">Violet</option>
+        </select>
+      </div>
+    </section>
+
+    <div class="board-wrap" id="wrapEl">
+      <canvas id="board"></canvas>
+    </div>
+
+    <div class="meter">
+      <canvas id="dens"></canvas>
+      <div class="stats">
+        <div class="stat"><u>Row</u><b id="sGen">0</b></div>
+        <div class="stat"><u>On</u><b id="sOn">0</b></div>
+        <div class="stat"><u>Density</u><b id="sD">0%</b></div>
+        <div class="stat code"><u>Code</u><b id="sCode">00011110</b></div>
+        <div class="stat" id="statMatch" hidden><u>Match</u><b id="sMatch">0%</b></div>
+      </div>
+      <div class="flag" id="flag">Click any box above to change the rule</div>
+    </div>
+  </main>
+
+  <aside class="lib" id="lib">
+    <div class="lib__head">
+      <h2 id="libTitle">Notable rules</h2>
+      <div class="row">
+        <button id="reroll" hidden style="padding:4px 8px;font-size:11px">Reroll</button>
+        <button id="libClose" style="padding:4px 8px;font-size:11px">Hide ▸</button>
+      </div>
+    </div>
+    <div class="lib__body" id="libBody"></div>
+  </aside>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal__box">
+    <h3>What this is</h3>
+    <p>An elementary cellular automaton. One row of cells, each on or off. To draw the next row,
+    every cell looks at a few cells above it and asks what to become.</p>
+    <p><b>Rule X</b> looks at three: its own and one either side. Three cells, on or off, gives
+    exactly eight situations — the eight boxes. The little pattern on top is the situation, the
+    square underneath is your answer. Eight answers read as binary make a number from 0 to 255, and
+    that number <i>is</i> the rule.</p>
+
+    <h3>Rule 2X</h3>
+    <p>Four cells instead of three: sixteen situations, sixteen answers, and a rule number from 0 to
+    65,535. Each box still has one answer square rather than two — sixteen situations with two
+    outputs each would mean 4<sup>16</sup>, about 4.3 billion rules, and an unreadable strip.</p>
+    <p>Four cells have no middle one, so the natural home for the answer is the <i>gap</i> between
+    the two centre cells. That is what <b>stagger rows</b> does: every other row is shifted half a
+    cell, which puts each new cell directly under the gap it came from and keeps the pattern
+    centred. Turn it off and the window becomes lopsided — reaching one cell left and two right —
+    so everything slides sideways. Measured over 200 symmetric rules: half a cell of drift with
+    stagger on, eight cells without it.</p>
+
+    <h3>Two ways to run</h3>
+    <p>By default the diagram runs forever and the board scrolls, keeping every row so you can wheel
+    back to the seed. Tick <b>stop at the bottom</b> and it behaves like a sheet of paper instead:
+    the height is whatever fits on screen, and it halts the moment the pattern reaches the last row.
+    Change the cell size or the window and the sheet resizes with it.</p>
+
+    <h3>Why any of it matters</h3>
+    <p>Rule 30 turns a single cell into something disordered enough that its middle column passed
+    serious randomness tests. Rule 110 was proved capable of universal computation. Both start from
+    one black square and eight yes-or-no answers.</p>
+
+    <h3>Keys</h3>
+        <p><b>Space</b> play / pause &middot; <b>&larr;</b> <b>&rarr;</b> step a row &middot;
+        <b>[</b> <b>]</b> rule down / up &middot; <b>R</b> random rule &middot;
+        <b>S</b> one source &middot; <b>C</b> empty seed &middot; <b>0</b> reset to the seed &middot;
+        <b>F</b> fit width &middot; <b>Home</b> / <b>End</b> top and bottom &middot;
+        <b>PgUp</b> / <b>PgDn</b> scroll a screenful &middot; <b>X</b> compare on/off &middot;
+        <b>I</b> this panel &middot; <b>Esc</b> close.
+        In Rule X, keys <b>1&ndash;8</b> flip the boxes left to right.</p>
+    <button id="modalX">Close</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ------------------------------------------------------------------ data */
+const PAL = {
+  crimson:{on:[255,59,82],  off:[12,10,12]},
+  amber:  {on:[255,199,61], off:[13,11,8]},
+  jade:   {on:[47,224,138], off:[8,13,11]},
+  cyan:   {on:[34,211,238], off:[8,12,14]},
+  azure:  {on:[75,134,255], off:[9,11,16]},
+  violet: {on:[196,107,255],off:[13,9,16]}
+};
+/* comparison uses its own saturated triad so the three states never blur together,
+   whatever palette the diagram is in */
+const CMP = { a:[255,59,82], b:[34,211,238], both:[255,199,61] };
+const mix=(a,b)=>[Math.min(255,(a[0]+b[0])*0.62),Math.min(255,(a[1]+b[1])*0.62),Math.min(255,(a[2]+b[2])*0.62)];
+const LIB3 = [
+  {r:90,  c:"Nested",  m:"Sierpiński triangle"},
+  {r:22,  c:"Nested",  m:"triangles within triangles"},
+  {r:150, c:"Nested",  m:"XOR of all three"},
+  {r:60,  c:"Nested",  m:"one-sided Pascal"},
+  {r:30,  c:"Chaotic", m:"order left, chaos right"},
+  {r:45,  c:"Chaotic", m:"chaos, drifting"},
+  {r:105, c:"Chaotic", m:"dense noise"},
+  {r:126, c:"Chaotic", m:"nested, then broken"},
+  {r:110, c:"Complex", m:"proved universal"},
+  {r:54,  c:"Complex", m:"gliders on a lattice"},
+  {r:124, c:"Complex", m:"110 mirrored"},
+  {r:137, c:"Complex", m:"110, on and off swapped"},
+  {r:184, c:"Traffic", m:"cars moving right"},
+  {r:226, c:"Traffic", m:"cars moving left"},
+  {r:1,   c:"Simple",  m:"checkerboard"},
+  {r:255, c:"Simple",  m:"everything fills"}
+];
+
+const S = {
+  N:3, bits:8, max:255, rule:30, stagger:true,
+  W:201, rows:[], idx:[], series:[],
+  running:false, fps:24, wrap:true, follow:true, stopEnd:false,
+  zoom:3, colour:"plain", palette:"amber",
+  scroll:0, visRows:1, drawing:false, lastX:-1,
+  cmp:"off", cmpRule:218, grows:[],
+  panFrom:null, acc:0, last:0, dpr:1, gallery:[]
+};
+const MAXROWS = 20000;
+
+const $ = id => document.getElementById(id);
+const board = $("board"), bctx = board.getContext("2d",{alpha:false});
+const dens = $("dens"), dctx = dens.getContext("2d");
+const buf = document.createElement("canvas");
+const bufctx = buf.getContext("2d");
+let bufData=null;
+function flag(t,alert){ const el=$("flag"); el.textContent=t; el.classList.toggle("alert",!!alert); }
+window.addEventListener("error",e=>flag("Error: "+(e.message||"something broke"),true));
+
+/* the colour wheel used by "which answer fired" — 8 or 16 evenly spaced hues */
+function fireColours(n){
+  const out=[];
+  for(let i=0;i<n;i++){
+    const h=(i/n)*360, s=0.72, l=0.60;
+    const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs(((h/60)%2)-1)), m=l-c/2;
+    let r,g,b;
+    if(h<60){r=c;g=x;b=0;} else if(h<120){r=x;g=c;b=0;} else if(h<180){r=0;g=c;b=x;}
+    else if(h<240){r=0;g=x;b=c;} else if(h<300){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
+    out.push([Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)]);
+  }
+  return out;
+}
+let FIRE = fireColours(8);
+
+/* ------------------------------------------------------------------ core */
+/* Rule X  : cells j-1, j, j+1  ->  cell j.
+   Rule 2X : four cells, whose centre falls in the GAP between the middle two, so the
+   output row is offset half a cell. The window alternates to keep that gap centred. */
+function windowBase(t){
+  if(S.N===3) return -1;
+  return S.stagger ? (t%2 ? -1 : -2) : -1;
+}
+function nextRow(cur,t,rule){
+  const W=S.W, wrap=S.wrap, N=S.N, base=windowBase(t);
+  const out=new Uint8Array(W), which=new Uint8Array(W);
+  for(let j=0;j<W;j++){
+    let k=0;
+    for(let m=0;m<N;m++){
+      let i=j+base+m;
+      if(wrap) i=((i%W)+W)%W;
+      k=(k<<1)|((i>=0&&i<W)?cur[i]:0);
+    }
+    out[j]=(rule>>k)&1;
+    which[j]=k;
+  }
+  return [out,which];
+}
+function atLimit(){ return S.stopEnd && S.rows.length>=S.visRows; }
+/* the second rule is run alongside the first from the same seed row */
+function rebuildGhost(){
+  if(S.cmp==="off" || !S.rows.length){ S.grows=[]; return; }
+  S.grows=[S.rows[0].slice()];
+  for(let t=1;t<S.rows.length;t++) S.grows.push(nextRow(S.grows[t-1],t,S.cmpRule)[0]);
+}
+function step(){
+  if(atLimit()) return false;
+  const t=S.rows.length;
+  const [row,which]=nextRow(S.rows[t-1],t,S.rule);
+  S.rows.push(row); S.idx.push(which);
+  if(S.cmp!=="off" && S.grows.length===t) S.grows.push(nextRow(S.grows[t-1],t,S.cmpRule)[0]);
+  if(S.rows.length>MAXROWS){
+    S.rows.shift(); S.idx.shift();
+    if(S.grows.length>MAXROWS) S.grows.shift();
+    if(S.scroll>0) S.scroll--;
+  }
+  let on=0;
+  for(let i=0;i<row.length;i++) on+=row[i];
+  S.series.push(on/S.W);
+  if(S.series.length>600) S.series.shift();
+  if(S.follow) S.scroll=Math.max(0,S.rows.length-S.visRows);
+  return true;
+}
+function back(){
+  if(S.rows.length<2){ flag("This is the seed row — nothing before it"); return; }
+  S.rows.pop(); S.idx.pop(); S.series.pop();
+  if(S.grows.length>S.rows.length) S.grows.pop();
+  if(S.follow) S.scroll=Math.max(0,S.rows.length-S.visRows);
+  draw(); stats();
+}
+function applySeed(){
+  const n=+$("sources").value;
+  $("srcOut").textContent=String(n);
+  $("seedNote").textContent = n===0
+    ? "Empty — drag along the top row of the board to place cells by hand."
+    : n===1 ? "One cell in the middle, the classic starting point."
+    : n+" cells at equal spacing. Each grows its own tree until the cones meet and interfere.";
+  pause();
+  reseed("custom", seedSources(n));
+  return n;
+}
+function seedSources(n){
+  const W=S.W, row=new Uint8Array(W);
+  for(let i=0;i<n;i++) row[Math.min(W-1,Math.round((i+0.5)*W/n))]=1;
+  return row;
+}
+function reseed(mode,custom){
+  const W=S.W;
+  let row = custom || new Uint8Array(W);
+  if(!custom && mode==="one") row[W>>1]=1;
+  S.rows=[row]; S.idx=[new Uint8Array(W)]; S.series=[];
+  let on=0; for(let i=0;i<W;i++) on+=row[i];
+  S.series.push(on/W);
+  S.scroll=0;
+  rebuildGhost();
+  draw(); stats();
+}
+function resetToSeed(){
+  S.rows.length=1; S.idx.length=1;
+  let on=0; for(const v of S.rows[0]) on+=v;
+  S.series=[on/S.W]; S.scroll=0;
+  rebuildGhost();
+  draw(); stats();
+}
+
+/* -------------------------------------------------------------- the rule */
+const bit = k => (S.rule>>k)&1;
+function buildBoxes(){
+  const el=$("boxes");
+  el.innerHTML="";
+  for(let k=S.bits-1;k>=0;k--){
+    const b=document.createElement("button");
+    b.className="box"; b.dataset.k=String(k);
+    let cells="", label="";
+    for(let m=S.N-1;m>=0;m--){
+      const v=(k>>m)&1;
+      cells+=`<i class="${v?"on":"off"}"></i>`;
+      label+=v;
+    }
+    b.title="Situation "+label+" — click to flip the answer";
+    b.innerHTML=`<span class="nbr">${cells}</span>
+      <span class="out"><i class="${bit(k)?"on":"off"}"></i></span><em>${label}</em>`;
+    b.onclick=()=>setRule(S.rule ^ (1<<k));
+    el.appendChild(b);
+  }
+  paintBoxes();
+}
+function paintBoxes(){
+  const showK=S.colour==="rule";
+  $("boxes").querySelectorAll(".box").forEach(b=>{
+    const k=+b.dataset.k, on=bit(k);
+    const out=b.querySelector(".out i");
+    out.className=on?"on":"off";
+    out.style.background=(on&&showK)?`rgb(${FIRE[k].join(",")})`:"";
+    b.dataset.fired=String(!!on);
+  });
+}
+function code(){ return S.rule.toString(2).padStart(S.bits,"0"); }
+function setRule(n){
+  const span=S.max+1;
+  S.rule=((n%span)+span)%span;
+  $("bigNum").value=String(S.rule);
+  paintBoxes();
+  $("sCode").textContent=code();
+  const card=$("libBody").querySelector('[data-rule="'+S.rule+'"]');
+  $("libBody").querySelectorAll(".card").forEach(c=>c.setAttribute("aria-pressed",String(c===card)));
+  resetToSeed();
+  if(S.cmp!=="off") cmpColours();
+  flag((S.N===3?"Rule ":"Rule 2X ")+S.rule+" — "+describe(S.rule));
+}
+function mirrorRule(n){
+  let m=0;
+  for(let k=0;k<S.bits;k++){
+    let j=0;
+    for(let i=0;i<S.N;i++) j=(j<<1)|((k>>i)&1);
+    if((n>>k)&1) m|=1<<j;
+  }
+  return m;
+}
+function complementRule(n){
+  let m=0;
+  for(let k=0;k<S.bits;k++){
+    const j=(~k)&(S.bits-1);
+    if(!((n>>k)&1)) m|=1<<j;
+  }
+  return m;
+}
+function describe(n){
+  const hit=S.N===3 ? LIB3.find(x=>x.r===n) : null;
+  const zero=(n&1)?"an empty row fills in":"an empty row stays empty";
+  const fam=[...new Set([n,mirrorRule(n),complementRule(n),complementRule(mirrorRule(n))])]
+    .sort((a,b)=>a-b).filter(v=>v!==n);
+  const same=fam.length?" Same behaviour as "+fam.join(", ")+".":" Its own mirror and complement.";
+  return (hit?hit.c.toLowerCase()+" — "+hit.m+". ":"")+code()+", and "+zero+"."+same;
+}
+
+/* -------------------------------------------------------------- drawing */
+/* the buffer is two pixels per cell so a staggered row can sit half a cell over */
+function layout(){
+  const wrapEl=$("wrapEl");
+  const availW=Math.max(80,wrapEl.clientWidth-28);
+  const availH=Math.max(80,wrapEl.clientHeight-28);
+  const dpr=S.dpr=Math.min(2,window.devicePixelRatio||1);
+  const z=S.zoom;
+  S.visRows=Math.max(1,Math.floor(availH/z));
+  const cw=Math.min(availW,S.W*z), ch=Math.min(availH,S.visRows*z);
+  board.style.width=cw+"px"; board.style.height=ch+"px";
+  board.width=Math.round(cw*dpr); board.height=Math.round(ch*dpr);
+  buf.width=S.W*2; buf.height=S.visRows;
+  bufData=bufctx.createImageData(S.W*2,S.visRows);
+  dens.width=dens.clientWidth*dpr; dens.height=dens.clientHeight*dpr;
+  if(S.follow) S.scroll=Math.max(0,S.rows.length-S.visRows);
+  clampScroll();
+  draw(); drawDens();
+}
+function clampScroll(){
+  S.scroll=Math.max(0,Math.min(Math.max(0,S.rows.length-S.visRows),Math.round(S.scroll)));
+}
+function draw(){
+  if(!bufData) return;
+  const W=S.W, vis=S.visRows, pal=PAL[S.palette];
+  const on=pal.on, off=pal.off, cmpc=CMP.b, both=CMP.both, aOnly=CMP.a;
+  const d=bufData.data, BW=W*2;
+  const total=S.rows.length, start=S.scroll;
+  for(let y=0;y<vis;y++){
+    const src=start+y;
+    const row=src<total?S.rows[src]:null;
+    const which=src<total?S.idx[src]:null;
+    const grow=(S.cmp!=="off"&&src<S.grows.length)?S.grows[src]:null;
+    const shift=(S.N===4&&S.stagger&&(src%2))?1:0;
+    for(let px=0;px<BW;px++){
+      const x=((px-shift)>>1);
+      let c=off;
+      const inside = x>=0 && x<W;
+      if(S.cmp!=="off"){
+        const a=(row&&inside)?row[x]:0, b=(grow&&inside)?grow[x]:0;
+        if(S.cmp==="diff") c = (a!==b) ? (a?aOnly:cmpc) : off;
+        else c = (a&&b) ? both : a ? aOnly : b ? cmpc : off;
+      } else if(row && inside && row[x]){
+        if(S.colour==="rule") c=FIRE[which[x]];
+        else c=on;
+      }
+      const k=(y*BW+px)*4;
+      d[k]=c[0]; d[k+1]=c[1]; d[k+2]=c[2]; d[k+3]=255;
+    }
+  }
+  bufctx.putImageData(bufData,0,0);
+  bctx.setTransform(1,0,0,1,0,0);
+  bctx.imageSmoothingEnabled=false;
+  bctx.fillStyle=`rgb(${off.join(",")})`;
+  bctx.fillRect(0,0,board.width,board.height);
+  bctx.drawImage(buf,0,0,board.width,board.height);
+  /* scroll indicator, only once there is more than a screenful */
+  if(total>vis){
+    const h=board.height, barH=Math.max(18,h*vis/total);
+    const y=(S.scroll/(total-vis))*(h-barH);
+    bctx.fillStyle="rgba(140,155,180,.35)";
+    bctx.fillRect(board.width-4*S.dpr,y,3*S.dpr,barH);
+  }
+}
+function stats(){
+  const row=S.rows[S.rows.length-1];
+  let on=0;
+  for(let i=0;i<row.length;i++) on+=row[i];
+  $("sGen").textContent=String(S.rows.length-1);
+  $("sOn").textContent=on.toLocaleString();
+  $("sD").textContent=((on/S.W)*100).toFixed(1)+"%";
+  $("sCode").textContent=code();
+  const cmpOn=S.cmp!=="off";
+  $("statMatch").hidden=!cmpOn;
+  if(cmpOn && S.grows.length===S.rows.length){
+    const g=S.grows[S.grows.length-1];
+    let same=0;
+    for(let i=0;i<row.length;i++) if(row[i]===g[i]) same++;
+    $("sMatch").textContent=((same/S.W)*100).toFixed(1)+"%";
+  }
+  drawDens();
+}
+function drawDens(){
+  const w=dens.width,h=dens.height,n=S.series.length;
+  dctx.clearRect(0,0,w,h);
+  if(!n) return;
+  const cols=Math.min(n,300), bw=w/cols, c=PAL[S.palette].on;
+  dctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`;
+  for(let i=0;i<cols;i++){
+    const v=S.series[n-cols+i];
+    dctx.fillRect(i*bw,h-v*h,Math.ceil(bw),v*h);
+  }
+}
+
+/* ------------------------------------------------------------------ loop */
+function play(){
+  if(atLimit()){ resetToSeed(); flag("Reached the bottom last time — starting again from the seed"); }
+  S.running=true; $("play").textContent="PAUSE"; flag("Running rule "+S.rule); S.last=performance.now(); requestAnimationFrame(loop); }
+function pause(){ S.running=false; $("play").textContent="PLAY"; }
+function loop(t){
+  if(!S.running) return;
+  S.acc+=t-S.last; S.last=t;
+  const iv=1000/S.fps;
+  let did=0;
+  const budget=performance.now()+22;
+  let hit=false;
+  while(S.acc>=iv && did<60 && performance.now()<budget){
+    S.acc-=iv;
+    if(!step()){ hit=true; break; }
+    did++;
+  }
+  if(hit){
+    pause();
+    draw(); stats();
+    flag("Reached the bottom at row "+(S.rows.length-1)+" — untick Stop at the bottom to keep going");
+    return;
+  }
+  if(S.acc>iv*6) S.acc=0;
+  if(did){ draw(); stats(); }
+  requestAnimationFrame(loop);
+}
+
+/* --------------------------------------------------- seed drawing + scroll */
+function seedCell(e){
+  if(S.rows.length!==1||S.scroll!==0) return -1;
+  const r=board.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*S.W);
+  const y=Math.floor((e.clientY-r.top)/r.height*S.visRows);
+  return (y===0&&x>=0&&x<S.W)?x:-1;
+}
+board.addEventListener("pointerdown",e=>{
+  const x=seedCell(e);
+  if(x>=0){
+    board.setPointerCapture(e.pointerId);
+    S.drawing=true; S.lastX=x;
+    S.rows[0][x]^=1;
+    draw(); stats();
+  } else {
+    board.setPointerCapture(e.pointerId);
+    S.panFrom=[e.clientY,S.scroll];
+  }
+  e.preventDefault();
+});
+board.addEventListener("pointermove",e=>{
+  if(S.drawing){
+    const x=seedCell(e);
+    if(x<0||x===S.lastX) return;
+    const lo=Math.min(x,S.lastX), hi=Math.max(x,S.lastX);
+    for(let i=lo;i<=hi;i++) if(i!==S.lastX) S.rows[0][i]=1;
+    S.lastX=x; draw(); stats();
+    return;
+  }
+  if(S.panFrom){
+    const dy=(e.clientY-S.panFrom[0])/ (S.zoom);
+    S.scroll=S.panFrom[1]-Math.round(dy);
+    S.follow=false;
+    clampScroll(); draw();
+  }
+});
+window.addEventListener("pointerup",()=>{
+  if(S.drawing){ S.drawing=false; S.series[0]=onFrac(S.rows[0]); drawDens(); }
+  S.panFrom=null;
+});
+function onFrac(r){ let n=0; for(const v of r) n+=v; return n/S.W; }
+board.addEventListener("wheel",e=>{
+  e.preventDefault();
+  S.scroll+=Math.sign(e.deltaY)*Math.max(1,Math.round(Math.abs(e.deltaY)/16));
+  if(S.rows.length>S.visRows) S.follow=false;
+  clampScroll(); draw();
+},{passive:false});
+
+/* --------------------------------------------------------------- library */
+function simulate(rule,N,stagger,W,H,wrap){
+  let row=new Uint8Array(W);
+  row[W>>1]=1;
+  const rows=[row];
+  for(let t=1;t<H;t++){
+    const n=new Uint8Array(W);
+    const base = N===3 ? -1 : (stagger ? (t%2?-1:-2) : -1);
+    for(let j=0;j<W;j++){
+      let k=0;
+      for(let m=0;m<N;m++){
+        let i=j+base+m;
+        if(wrap) i=((i%W)+W)%W;
+        k=(k<<1)|((i>=0&&i<W)?row[i]:0);
+      }
+      n[j]=(rule>>k)&1;
+    }
+    rows.push(n); row=n;
+  }
+  return rows;
+}
+function thumb(cv,rule){
+  const W=96,H=56;
+  cv.width=W*2; cv.height=H;
+  const c=cv.getContext("2d");
+  const img=c.createImageData(W*2,H);
+  const d=img.data, pal=PAL[S.palette];
+  const rows=simulate(rule,S.N,S.stagger,W,H,true);
+  for(let y=0;y<H;y++){
+    const shift=(S.N===4&&S.stagger&&(y%2))?1:0;
+    for(let px=0;px<W*2;px++){
+      const x=((px-shift)>>1);
+      const v=(x>=0&&x<W)?rows[y][x]:0;
+      const col=v?pal.on:pal.off;
+      const k=(y*W*2+px)*4;
+      d[k]=col[0]; d[k+1]=col[1]; d[k+2]=col[2]; d[k+3]=255;
+    }
+  }
+  c.putImageData(img,0,0);
+}
+function renderLib(){
+  const body=$("libBody");
+  body.innerHTML="";
+  $("libTitle").textContent = S.N===3 ? "Notable rules" : "Sampled rules";
+  $("reroll").hidden = S.N===3;
+  const list = S.N===3
+    ? LIB3
+    : S.gallery.map(r=>({r, c:"Sampled", m:r.toString(2).padStart(16,"0")}));
+  let cat=null, grid=null;
+  list.forEach(p=>{
+    if(p.c!==cat){
+      cat=p.c;
+      const h=document.createElement("div"); h.className="cat"; h.textContent=cat; body.appendChild(h);
+      grid=document.createElement("div"); grid.className="cards"; body.appendChild(grid);
+    }
+    const b=document.createElement("button");
+    b.className="card"; b.dataset.rule=String(p.r);
+    b.setAttribute("aria-pressed",String(p.r===S.rule));
+    b.innerHTML=`<canvas></canvas><em>Rule ${p.r}</em><small>${p.m}</small>`;
+    b.onclick=()=>setRule(p.r);
+    grid.appendChild(b);
+    thumb(b.querySelector("canvas"),p.r);
+  });
+  const note=document.createElement("p");
+  note.className="hint";
+  note.textContent = S.N===3
+    ? "Each preview is computed here and now from a single centre cell."
+    : "Sixteen bits is 65,536 rules — far too many to catalogue, so here is a random dozen. Reroll for more.";
+  body.appendChild(note);
+}
+function reroll(){
+  S.gallery=Array.from({length:12},()=>(Math.random()*65536)|0);
+  renderLib();
+}
+function openLib(on){
+  $("lib").classList.toggle("off",!on);
+  $("lib2").textContent=on?"Hide":"Rules";
+  setTimeout(layout,0);
+}
+
+/* ----------------------------------------------------------------- mode */
+function setMode(N){
+  S.N=N; S.bits=1<<N; S.max=(2**S.bits)-1;
+  FIRE=fireColours(S.bits);
+  $("bigNum").max=String(S.max);
+  $("rowStagger").hidden = N===3;
+  $("modeNote").textContent = N===3
+    ? "Three cells, eight situations. The classic Wolfram numbering — rule 30, rule 110, all 256."
+    : "Four cells, sixteen situations, one answer each. Two answers per box would mean 4^16 ≈ 4.3 billion rules and an unreadable strip, so each box keeps a single square.";
+  if(N===4 && !S.gallery.length) reroll();
+  if(S.cmpRule>S.max) S.cmpRule=S.max;
+  $("cmpRule").max=String(S.max); $("cmpRule").value=String(S.cmpRule);
+  buildBoxes(); renderLib();
+  setRule(N===3?30:S.rule&0xFFFF);
+  flag(N===3?"Rule X — three cells, 256 rules":"Rule 2X — four cells, 65,536 rules");
+}
+
+/* ------------------------------------------------------------- controls */
+$("play").onclick=()=>S.running?(pause(),flag("Paused")):play();
+$("next").onclick=()=>{ pause(); if(!step()) flag("At the bottom — fixed height is on",true); draw(); stats(); };
+$("prev").onclick=()=>{ pause(); back(); };
+$("plus10").onclick=()=>{ pause(); let n=0; while(n<10 && step()) n++; draw(); stats(); if(n<10) flag("Ran "+n+" rows and hit the bottom",true); };
+$("fill").onclick=()=>{
+  pause();
+  let n=0;
+  while(S.rows.length<S.visRows && step()) n++;
+  draw(); stats();
+  flag(n?("Ran "+n+" rows to the bottom"):"Already full — keep stepping and scroll back up any time");
+};
+$("fps").oninput=e=>{ S.fps=+e.target.value; $("fpsOut").textContent=S.fps; };
+$("reset").onclick=()=>{ pause(); resetToSeed(); flag("Back to the seed row"); };
+
+
+$("bigNum").oninput=e=>{ const v=parseInt(e.target.value,10); if(!isNaN(v)) setRule(v); };
+$("randRule").onclick=()=>setRule((Math.random()*(S.max+1))|0);
+$("ruleUp").onclick=()=>setRule(S.rule+1);
+$("ruleDn").onclick=()=>setRule(S.rule-1);
+$("mode").onchange=e=>{ pause(); setMode(+e.target.value); };
+$("stagger").onchange=e=>{
+  S.stagger=e.target.checked;
+  resetToSeed(); renderLib();
+  flag(S.stagger?"Rows staggered — each answer sits under the gap it came from"
+                :"Lattice fixed — the window reaches one cell left and two right, so the pattern slides");
+};
+$("width").onchange=()=>{
+  pause();
+  const v=+$("width").value;
+  S.W=v||Math.max(21,Math.floor(($("wrapEl").clientWidth-28)/S.zoom));
+  if(!(S.W%2)) S.W++;
+  $("wOut").textContent=String(S.W);
+  applySeed(); layout();
+  flag("Board is now "+S.W+" cells across");
+};
+$("zoom").oninput=e=>{ S.zoom=+e.target.value; $("zoomOut").textContent=S.zoom; layout(); };
+$("atEnd").onchange=e=>{
+  S.stopEnd=e.target.value==="stop";
+  S.follow=!S.stopEnd;
+  flag(S.stopEnd
+    ? "Fixed height — "+S.visRows+" rows, then it stops"
+    : "Free running — the board scrolls once it fills");
+};
+
+function cmpColours(){
+  const p=PAL[S.palette];
+  const sw=c=>`<i style="display:inline-block;width:9px;height:9px;border-radius:1px;background:rgb(${c.join(",")});vertical-align:-1px"></i>`;
+  $("cmpLegend").innerHTML = S.cmp==="diff"
+    ? sw(CMP.a)+" "+S.rule+" only &nbsp;"+sw(CMP.b)+" "+S.cmpRule+" only"
+    : sw(CMP.a)+" "+S.rule+" &nbsp;"+sw(CMP.b)+" "+S.cmpRule+" &nbsp;"+sw(CMP.both)+" both";
+}
+function syncCmp(){
+  const on=S.cmp!=="off";
+  $("rowCmp").hidden=!on;
+  $("cmpRule").max=String(S.max);
+  $("cmpNote").textContent = !on ? ""
+    : S.cmp==="diff" ? "Only cells where the two rules disagree are drawn, in whichever rule turned that cell on."
+    : "Both rules run from the same seed. Cells they agree on are drawn in a blend, so the split shows where they part ways.";
+  if(on) cmpColours();
+  rebuildGhost(); draw(); stats();
+}
+$("sources").oninput=()=>{ const n=applySeed(); flag(n===0?"Empty seed — draw along the top row":
+  n===1?"Single cell at the centre":n+" sources, evenly spaced"); };
+$("cmpMode").onchange=e=>{ S.cmp=e.target.value; syncCmp();
+  flag(S.cmp==="off"?"Comparison off":"Comparing rule "+S.rule+" against rule "+S.cmpRule); };
+$("cmpRule").oninput=e=>{
+  const v=parseInt(e.target.value,10);
+  if(isNaN(v)) return;
+  S.cmpRule=((v%(S.max+1))+(S.max+1))%(S.max+1);
+  syncCmp();
+};
+$("cmpSwap").onclick=()=>{
+  const a=S.rule, b=S.cmpRule;
+  S.cmpRule=a; $("cmpRule").value=String(a);
+  setRule(b);
+  syncCmp();
+  flag("Swapped — now showing rule "+b+" against rule "+a);
+};
+$("cmpRand").onclick=()=>{ S.cmpRule=(Math.random()*(S.max+1))|0; $("cmpRule").value=String(S.cmpRule); syncCmp(); };
+$("wrap").onchange=e=>{ S.wrap=e.target.checked; flag(S.wrap?"Edges wrap into a ring":"Edges are permanently off"); };
+$("colour").onchange=e=>{
+  S.colour=e.target.value;
+  $("colourNote").textContent = S.colour==="rule"
+    ? "Every on-cell takes the colour of the box that produced it, so you can see which answers do the work."
+    : "";
+  paintBoxes(); draw();
+};
+$("palette").onchange=e=>{ S.palette=e.target.value; if(S.cmp!=="off") cmpColours(); draw(); drawDens(); renderLib(); };
+$("save").onclick=()=>{
+  const a=document.createElement("a");
+  a.download="rule-"+S.rule+(S.N===4?"-2x":"")+".png";
+  a.href=buf.toDataURL("image/png");
+  a.click();
+};
+$("reroll").onclick=reroll;
+$("libClose").onclick=()=>openLib(false);
+$("lib2").onclick=()=>openLib($("lib").classList.contains("off"));
+$("info").onclick=()=>$("modal").hidden=false;
+$("modalX").onclick=()=>$("modal").hidden=true;
+$("modal").onclick=e=>{ if(e.target===$("modal")) $("modal").hidden=true; };
+
+window.addEventListener("keydown",e=>{
+  if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  const k=e.key.toLowerCase();
+  if(e.code==="Space"){ e.preventDefault(); $("play").click(); return; }
+  if(e.key==="ArrowRight"){ $("next").click(); return; }
+  if(e.key==="ArrowLeft"){ $("prev").click(); return; }
+  if(e.key==="Home"){ S.follow=false; S.scroll=0; draw(); return; }
+  if(e.key==="End"){ S.scroll=Math.max(0,S.rows.length-S.visRows); if(!S.stopEnd) S.follow=true; draw(); return; }
+  if(e.key==="PageUp"){ S.scroll-=S.visRows; S.follow=false; clampScroll(); draw(); return; }
+  if(e.key==="PageDown"){ S.scroll+=S.visRows; clampScroll(); draw(); return; }
+  if(e.key==="Escape"){ $("modal").hidden=true; return; }
+  if(S.N===3 && k>="1" && k<="8"){ setRule(S.rule ^ (1<<(8-+k))); return; }
+  if(k==="0"){ $("reset").click(); return; }
+  if(k==="["){ setRule(S.rule-1); return; }
+  if(k==="]"){ setRule(S.rule+1); return; }
+  if(k==="r"){ $("randRule").click(); return; }
+
+  if(k==="s"){ $("sources").value="1"; $("sources").dispatchEvent(new Event("input")); return; }
+  if(k==="c"){ $("sources").value="0"; $("sources").dispatchEvent(new Event("input")); return; }
+  if(k==="f"){ $("width").value="0"; $("width").dispatchEvent(new Event("change")); return; }
+  if(k==="x"){ $("cmpMode").value = S.cmp==="off"?"overlay":"off";
+    $("cmpMode").dispatchEvent(new Event("change")); return; }
+  if(k==="i"||k==="?"){ $("modal").hidden=!$("modal").hidden; return; }
+});
+let rt;
+window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(layout,140); });
+
+/* ------------------------------------------------------------------ boot */
+applySeed();
+setMode(3);
+layout();
+$("fill").click();
+flag("Rule 30 from a single cell — press play, or click a box to change the rule");
+})();
+</script>
+</body>
+</html>

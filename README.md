@@ -13,6 +13,8 @@ they run, and see what falls out.
 | | Automaton | What it is |
 |---|---|---|
 | 🧬 | **[RGB Life](rgb-life.html)** | Conway's Game of Life played on the pixels of your photos, with 3 or 6 competing species and nine cross-species interaction models |
+| ◽ | **[Rule X](rule-x.html)** | All 256 elementary (Wolfram) rules, edited by clicking the eight answer boxes; plus four-cell neighbourhoods and 65,536 rules |
+| 🌀 | **[Lenia](lenia.html)** | Conway's Life with state, space and time made continuous; grows lifelike gliders, plus a search that hunts rule-space for new species |
 
 *More on the way — see [Ideas](#ideas) below.*
 
@@ -45,7 +47,6 @@ So the collection stays coherent as it grows:
 
 Candidates for future entries, roughly easiest first:
 
-- **Elementary (1D) automata** — all 256 Wolfram rules, drawn as a scrolling space-time diagram
 - **Langton's ant** — one ant, two rules, and a highway that appears after 10,000 steps of chaos
 - **Brian's Brain** — three states (firing, refractory, dead); produces relentless drifting gliders
 - **Wireworld** — electrons in circuits; build real logic gates, adders, even a prime sieve
@@ -53,7 +54,6 @@ Candidates for future entries, roughly easiest first:
 - **Abelian sandpile** — drop grains, watch avalanches settle into fractal patterns
 - **Turmites** — Langton's ant with a bigger state table, in two dimensions
 - **Reaction–diffusion (Gray–Scott)** — continuous rather than discrete; coral, fingerprints, spots
-- **Lenia** — continuous-space, continuous-time Life; produces genuinely lifelike gliders
 - **Falling sand** — sand, water, fire, oil, with interactions; the most game-like of the lot
 
 ## License
